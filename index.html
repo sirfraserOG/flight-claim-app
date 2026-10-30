@@ -1,6 +1,7 @@
-<!DOCTYPE html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FlightHelp – UK261/EU261 disruption assistant</title>
+<!DOCTYPE html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ICE-FLY: flight disruption claim assistant</title><link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%23c62828%22/%3E%3Cpath%20fill%3D%22%23fff%22%20d%3D%22M30%2010c2%200%203%202%203%204v13l17%209v5l-17-5v10l5%204v4l-8-2-8%202v-4l5-4V36l-17%205v-5l17-9V14c0-2%201-4%203-4z%22/%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2214%22%20r%3D%229%22%20fill%3D%22%23fff%22/%3E%3Cpath%20fill%3D%22%23c62828%22%20d%3D%22M48%208h4v4h4v4h-4v4h-4v-4h-4v-4h4z%22/%3E%3C/svg%3E"><link rel="apple-touch-icon" href="icon.svg"><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#c62828"><meta name="apple-mobile-web-app-title" content="ICE-FLY">
 <style>
-:root{--p:#0b5cad;--bg:#f4f6fa;--ok:#137a3a;--warn:#a15c00;--bad:#b00020}
+:root{--p:#0b5cad;--bg:#f4f6fa;--ok:#137a3a;--warn:#a15c00;--bad:#b00020;--ice:#c62828}
+.brand{display:flex;align-items:center;gap:.6rem;margin:0}.brand svg{width:40px;height:40px;flex:none}.brand b{font-size:1.35rem;letter-spacing:.04em;color:var(--ice)}.brand small{display:block;font-weight:400;font-size:.8rem;opacity:.85}header .brand b{color:#fff;background:var(--ice);padding:0 .35rem;border-radius:6px}.printbrand{display:none}@media print{.printbrand{display:block;font:600 12pt sans-serif;border-bottom:2px solid #c62828;margin-bottom:8pt}}
 *{box-sizing:border-box}body{margin:0;font:17px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:#111}
 header{background:var(--p);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:5}header h1{font-size:19px;margin:0}
 .bar{height:8px;background:#ffffff55;border-radius:4px;margin-top:8px}.bar i{display:block;height:100%;background:#fff;border-radius:4px;transition:width .3s}
@@ -32,7 +33,7 @@ footer{font-size:13px;color:#555;text-align:center;padding:16px 16px 80px}
 table.sch{border-collapse:collapse;width:100%;font-size:13px}table.sch td,table.sch th{border:1px solid #ccc;padding:4px;text-align:left}
 @media print{#dos .noprint,#ver,#bot,#tabs{display:none!important}}
 .cf{border-top:1px solid #e3e8ef;padding:6px 0}.cfl{font-size:13px;color:#555}.cfr{display:flex;gap:6px;align-items:flex-start}.cfv{flex:1;margin:0;white-space:pre-wrap;word-break:break-word;font:14px system-ui;background:#f6f8fb;padding:6px;border-radius:6px}.cfb{flex:0 0 auto!important;min-width:70px}#howto .meta{font-size:13px}.ck{list-style:none;padding-left:4px}#bot.pre>:not(#intake):not(.disc){display:none!important}.row2{display:flex;gap:8px}.row2>*{flex:1}</style></head><body>
-<header><h1>✈️ FlightHelp — delay &amp; cancellation assistant</h1><div class="bar"><i id="prog"></i></div><div class="steps" id="stepname"></div><nav id="tabs"><button data-mode="bot">💬 Assistant</button><button data-mode="dos">📁 Dossier</button><button data-mode="ver">🔎 Check reason</button><button data-mode="wiz">🧭 Wizard</button></nav></header>
+<div class="printbrand">ICE-FLY · Evidence schedule (prepared by the passenger)</div><header><h1 class="brand"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#c62828"/><path fill="#fff" d="M30 10c2 0 3 2 3 4v13l17 9v5l-17-5v10l5 4v4l-8-2-8 2v-4l5-4V36l-17 5v-5l17-9V14c0-2 1-4 3-4z"/><circle cx="50" cy="14" r="9" fill="#fff"/><path fill="#c62828" d="M48 8h4v4h4v4h-4v4h-4v-4h-4v-4h4z"/></svg><span><b>ICE-FLY</b><small>In case of emergency: calm, step-by-step help when flights go wrong</small></span></h1><div class="bar"><i id="prog"></i></div><div class="steps" id="stepname"></div><nav id="tabs"><button data-mode="bot">💬 Assistant</button><button data-mode="dos">📁 Dossier</button><button data-mode="ver">🔎 Check reason</button><button data-mode="wiz">🧭 Wizard</button></nav></header>
 <div id="dos"><div class="disc">Your claim dossier is stored only on this device (IndexedDB). General information only, not legal advice.</div>
 <div class="card noprint"><h2>📁 Claim dossier</h2><label for="dcat">Category for new files</label><select id="dcat"></select>
 <label for="dfiles">Add files (photos, screenshots, PDFs, emails)</label><input id="dfiles" type="file" multiple accept="image/*,application/pdf,.eml,.msg,.txt,.html">
@@ -47,7 +48,7 @@ table.sch{border-collapse:collapse;width:100%;font-size:13px}table.sch td,table.
 <div id="ver"><div class="disc">General information only, not legal advice. These checks help you understand what happened; they are not proof on their own.</div>
 <div class="card"><h2>🔎 Check the airline's reason</h2><p>Reason recorded: <b id="v_reason"></b></p><label for="v_cat">Type of reason</label><select id="v_cat"><option value="weather">Weather</option><option value="atc">Air traffic control (ATC) restrictions</option><option value="strike">Strike / industrial action</option><option value="technical">Technical fault</option><option value="operational">"Operational reasons" / crew</option><option value="other">Other / not given</option></select>
 <div class="how" style="margin-top:10px"><b>The legal point:</b> the airline doesn't have to pay compensation if the disruption was caused by extraordinary circumstances that could not have been avoided even if all reasonable measures had been taken. <b>The burden of proving this is on the airline</b>: it must show both the circumstance and that it took all reasonable measures. You don't have to prove the reason was wrong, but independent records can help you decide whether to challenge it and what evidence to ask for.</div></div><div id="vchecks"></div></div>
-<div id="bot"><div class="disc">Claim Assistant · general information only, not legal advice.</div>
+<div id="bot"><div class="disc">ICE-FLY assistant · general information only, not legal advice.</div>
 <div class="card" id="intake"></div>
 <div class="clock" id="clock"></div>
 <div class="msgs" id="msgs"></div>
@@ -55,7 +56,7 @@ table.sch{border-collapse:collapse;width:100%;font-size:13px}table.sch td,table.
 <div class="card"><b>Upcoming milestones</b><ul class="ms" id="mlist"></ul></div>
 <button class="btn2" id="toWizard">Open full wizard / evidence / claim pack</button> <button class="btn2" id="botReset">Restart assistant</button></div>
 <div id="modal"><div class="card" id="mbody"></div></div>
-<main><button class="btn2" id="toBot">💬 Back to Claim Assistant</button>
+<main><button class="btn2" id="toBot">💬 Back to ICE-FLY assistant</button>
 <!-- 1 TRIAGE -->
 <section id="s0"><div class="card"><h2>1. What happened?</h2>
 <label for="airline">Airline</label><select id="airline"></select>
@@ -117,7 +118,7 @@ table.sch{border-collapse:collapse;width:100%;font-size:13px}table.sch td,table.
 <li><b>EU flights</b>: complain to the National Enforcement Body of the country where it happened (list on the European Commission's passenger-rights site), or use European Small Claims Procedure.</li></ol></div></section>
 <div class="nav"><button class="btn2" id="back">◀ Back</button><button id="next">Next ▶</button></div>
 </main>
-<footer>FlightHelp prototype · Saved on this device only · <b>General information only, not legal advice.</b> Based on UK261 (retained Reg. 261/2004) and EU261 as summarised by the UK CAA. <button class="btn2" id="reset">Clear my data</button></footer>
+<footer>ICE-FLY prototype · Saved on this device only · <b>General information only, not legal advice.</b> Based on UK261 (retained Reg. 261/2004) and EU261 as summarised by the UK CAA. <button class="btn2" id="reset">Clear my data</button></footer>
 <script>
 const AP={LHR:["London Heathrow",51.47,-0.4543,"UK"],LGW:["London Gatwick",51.1537,-0.1821,"UK"],STN:["London Stansted",51.885,0.235,"UK"],LTN:["London Luton",51.8747,-0.3683,"UK"],MAN:["Manchester",53.3537,-2.275,"UK"],BHX:["Birmingham",52.4539,-1.748,"UK"],BRS:["Bristol",51.3827,-2.7191,"UK"],EDI:["Edinburgh",55.95,-3.3725,"UK"],GLA:["Glasgow",55.8719,-4.4331,"UK"],ABZ:["Aberdeen",57.2019,-2.1978,"UK"],BFS:["Belfast Intl",54.6575,-6.2158,"UK"],NCL:["Newcastle",55.0375,-1.6917,"UK"],LPL:["Liverpool",53.3336,-2.8497,"UK"],EMA:["East Midlands",52.8311,-1.3281,"UK"],INV:["Inverness",57.5425,-4.0475,"UK"],
 DUB:["Dublin",53.4213,-6.2701,"EU"],AMS:["Amsterdam",52.3105,4.7683,"EU"],CDG:["Paris CDG",49.0097,2.5479,"EU"],FRA:["Frankfurt",50.0379,8.5622,"EU"],MUC:["Munich",48.3538,11.7861,"EU"],MAD:["Madrid",40.4983,-3.5676,"EU"],BCN:["Barcelona",41.2974,2.0833,"EU"],FCO:["Rome Fiumicino",41.8003,12.2389,"EU"],MXP:["Milan Malpensa",45.63,8.7231,"EU"],LIS:["Lisbon",38.7742,-9.1342,"EU"],FAO:["Faro",37.0144,-7.9659,"EU"],AGP:["Málaga",36.6749,-4.4991,"EU"],PMI:["Palma",39.5517,2.7388,"EU"],ALC:["Alicante",38.2822,-0.5582,"EU"],TFS:["Tenerife South",28.0445,-16.5725,"EU"],ATH:["Athens",37.9364,23.9445,"EU"],VIE:["Vienna",48.1103,16.5697,"EU"],BRU:["Brussels",50.901,4.4844,"EU"],CPH:["Copenhagen",55.618,12.656,"EU"],ARN:["Stockholm Arlanda",59.6519,17.9186,"EU"],WAW:["Warsaw",52.1657,20.9671,"EU"],PRG:["Prague",50.1008,14.26,"EU"],BUD:["Budapest",47.4369,19.2556,"EU"],
@@ -287,7 +288,7 @@ function render(){
 }
 function esc(s){return String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 
-/* ===== Claim Assistant (rules-based, offline) ===== */
+/* ===== ICE-FLY assistant (rules-based, offline) ===== */
 const CLAIM_PACK_LOCKED=false; // paywall placeholder: set true to gate the claim pack
 const QS=new URLSearchParams(location.search),OFF=(+QS.get("t")||0)*60000; // debug: ?t=<minutes> fast-forward
 const now=()=>Date.now()+OFF;
@@ -320,7 +321,7 @@ function ms(){const c=calc(inp()),ct=careThreshold(c.km),C=S.dtype==="cancelled"
 function addMsg(from,html,acts){S.bot.msgs.push({from,html,acts:acts||[],ts:new Date(now()).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})});save();renderBot();setTimeout(()=>scrollTo(0,document.body.scrollHeight),30)}
 function scriptHtml(k){return `<div class="card script" style="margin:8px 0 0;color:#111"><p>${SCR[k]}</p><button data-copyt="${k}">Copy script</button></div>`}
 function next(){const b=S.bot,c=calc(inp());
- if(b.stage==="type")addMsg("bot","Hi, I'm your Claim Assistant. I'll guide you through this. <b>What's happened?</b>",[["Cancelled","t:cancelled"],["Delayed","t:delayed"],["Denied boarding","t:denied"],["Missed connection","t:missed"]]);
+ if(b.stage==="type")addMsg("bot","Hi, I'm ICE-FLY, your claim assistant. I'll guide you through this. <b>What's happened?</b>",[["Cancelled","t:cancelled"],["Delayed","t:delayed"],["Denied boarding","t:denied"],["Missed connection","t:missed"]]);
  if(b.stage==="where")addMsg("bot","<b>Where are you now?</b>",[["At home","w:home"],["On the way","w:way"],["At the airport","w:airport"],["On board / arrived","w:board"]]);
  if(b.stage==="details")addMsg("bot",`Is this your flight? <b>${esc(S.airline)} ${esc(S.flightNo||"")}</b> ${S.origin} → ${S.dest} on ${S.date||"(date)"} · ${c.km} km · ${c.regs.join(" + ")||"no regime"}`,[["Yes, that's right","d:ok"],["Edit details","d:edit"]]);
  if(b.stage==="clock")addMsg("bot","When you get the message, tap <b>I've just been told</b>. I'll start a clock and prompt you at each point your rights change.",[["⏱ I've just been told","start"],["I was told earlier","startEarlier"]]);}
@@ -342,7 +343,7 @@ function startClock(t){S.bot.start=t;S.bot.fired=[];S.bot.stage="live";S.told=ne
 function askNotify(){if("Notification"in window&&Notification.permission==="default")try{Notification.requestPermission()}catch(e){}}
 function tick(){const b=S.bot;if(!b.start)return renderClock();const h=(now()-b.start)/36e5;
  ms().forEach(m=>{if(h>=m.at&&!b.fired.includes(m.id)){b.fired.push(m.id);addMsg("bot","⏰ "+m.txt+(m.sc?scriptHtml(m.sc):""),m.rec?[["✍️ Record now: "+REC[m.rec].t,"rec:"+m.rec]]:[]);
-  if("Notification"in window&&Notification.permission==="granted")try{new Notification("Claim Assistant",{body:m.txt.replace(/<[^>]+>/g,"")})}catch(e){}}});
+  if("Notification"in window&&Notification.permission==="granted")try{new Notification("ICE-FLY",{body:m.txt.replace(/<[^>]+>/g,"")})}catch(e){}}});
  renderClock()}
 function renderClock(){const b=S.bot;if(!b.start){$("clock").innerHTML="Clock not started.";$("mlist").innerHTML=ms().map(m=>`<li>+${m.at}h: ${m.txt.replace(/<[^>]+>/g,"")}</li>`).join("");return}
  const e=now()-b.start,hh=Math.floor(e/36e5),mm=Math.floor(e%36e5/6e4);$("clock").innerHTML=`Disruption clock<br><b>${hh}h ${String(mm).padStart(2,"0")}m</b> since told · started ${new Date(b.start).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}`;
@@ -385,7 +386,7 @@ function summary(){const R=S.bot.recd||{},c=calc(inp()),miss=[];
  addMsg("bot",`<b>Your claim so far</b><br>${S.log.length} log entries · ${S.rec.length} receipts (${Object.entries(tot).map(([k,v])=>k+" "+v.toFixed(2)).join(" + ")||"none"})<br>Estimated compensation: <b>${c.amount?money(c.sym,c.amount)+" per person":"none on current facts"}</b> (${c.why})<br>${miss.length?"<b>⚠️ Missing:</b> "+miss.map(m=>typeof m==="string"?m:m[0]).join(", "):"✅ Evidence looks complete."}<div class="disc" style="color:#111">General information only, not legal advice.</div>`,
   miss.filter(m=>typeof m!=="string").map(m=>["Add "+m[0],m[1]]).concat([["📄 Open claim pack","claim"],["Add booking ref","wiz:3"]]))}
 function sync(){F.forEach(k=>{const e=$(k);if(e&&S[k]!==undefined){e.type==="checkbox"?e.checked=!!S[k]:e.value=S[k]}});save();render()}
-function renderBot(){document.body.classList.toggle("botmode",S.mode==="bot");if(S.mode==="bot")$("stepname").textContent="💬 Claim Assistant";
+function renderBot(){document.body.classList.toggle("botmode",S.mode==="bot");if(S.mode==="bot")$("stepname").textContent="💬 ICE-FLY assistant";
  $("msgs").innerHTML=S.bot.msgs.map((m,i)=>`<div class="m ${m.from==="me"?"me":""}"><div>${m.html}</div>${m.acts.length?`<div class="qr">${m.acts.map(a=>`<button data-act="${a[1]}">${a[0]}</button>`).join("")}</div>`:""}<div class="ts">${m.ts}</div></div>`).join("");
  $("sits").innerHTML=Object.entries(SITS).map(([k,s])=>`<button class="btn2" data-act="sit:${k}">${s[0]}</button>`).join("");renderClock()}
 document.addEventListener("click",e=>{const a=e.target.dataset.act;if(a)act(a);const t=e.target.dataset.copyt;if(t)copy(SCR[t])});
@@ -495,7 +496,7 @@ async function downloadZip(){gen();const ex=exhibits(),files=[],safe=s=>String(s
  for(const d of S.dos.filter(d=>d.file)){const r=await idb("get",d.id);if(r)files.push({name:`exhibits/${ex[d.id]||"unused"}_${safe(d.cat)}_${safe(d.name)}`,data:new Uint8Array(await r.blob.arrayBuffer())})}
  const sched=`EVIDENCE SCHEDULE\n${S.pax||"[Passenger]"} – ${S.flightNo||"[flight]"} ${S.date||"[date]"} – booking ${S.bookingRef||"[ref]"}\n\n`+S.dos.filter(d=>d.use).sort((a,b)=>a.tsn-b.tsn).map(d=>`${ex[d.id]}\t${fmt(d.tsn)}\t${d.cat}\t${d.desc}${d.finding?` | finding: ${d.finding}; ${d.note||""}`:""}\t${d.name||"(no file)"}`).join("\n")+`\n\nTIMELINE\n`+timeline().map(x=>`${fmt(x.ts)}\t${x.k==="log"?x.o.txt:x.k==="rec"?`Receipt ${x.o.cur} ${x.o.amt.toFixed(2)} ${x.o.desc||""}`:`${x.o.cat}: ${x.o.desc}`}`).join("\n")+`\n\nCLAIM STATUS\n${JSON.stringify(S.claim,null,1)}\n\nGeneral information only, not legal advice.\n`;
  files.push({name:"00_evidence_schedule.txt",data:sched});["L1","L2","L3","L4"].forEach((l,i)=>files.push({name:`letters/${i+1}_${["compensation","expenses","information_request","letter_before_action"][i]}.txt`,data:$(l).textContent}));
- const u=URL.createObjectURL(makeZip(files)),a=document.createElement("a");a.href=u;a.download=`claim-dossier-${safe(S.flightNo||"flight")}.zip`;document.body.append(a);a.click();a.remove()}
+ const u=URL.createObjectURL(makeZip(files)),a=document.createElement("a");a.href=u;a.download=`ice-fly-dossier-${safe(S.flightNo||"flight")}.zip`;document.body.append(a);a.click();a.remove()}
 const _act2=act;act=function(a){if(a==="ver"||a==="dos"){S.mode=a;save();render();scrollTo(0,0)}else _act2(a)};
 const _render2=render;render=function(){_render2();document.body.dataset.mode=S.mode;document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.mode===S.mode));if(S.mode==="dos")$("stepname").textContent="📁 Claim dossier";if(S.mode==="ver")$("stepname").textContent="🔎 Check the airline's reason";if(S.mode==="wiz")$("toBot").style.display="";renderDos();renderVer();renderReview();gen()};
 SITS.ec[1]+=' <button data-act="ver">🔎 Check the reason</button>';
