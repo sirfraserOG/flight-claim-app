@@ -1,0 +1,422 @@
+<!DOCTYPE html><html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FlightHelp – UK261/EU261 disruption assistant</title>
+<style>
+:root{--p:#0b5cad;--bg:#f4f6fa;--ok:#137a3a;--warn:#a15c00;--bad:#b00020}
+*{box-sizing:border-box}body{margin:0;font:17px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:#111}
+header{background:var(--p);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:5}header h1{font-size:19px;margin:0}
+.bar{height:8px;background:#ffffff55;border-radius:4px;margin-top:8px}.bar i{display:block;height:100%;background:#fff;border-radius:4px;transition:width .3s}
+.steps{font-size:13px;opacity:.9;margin-top:4px}
+main{max-width:640px;margin:auto;padding:14px}section{display:none}section.on{display:block}
+.card{background:#fff;border-radius:12px;padding:14px;margin:0 0 12px;box-shadow:0 1px 3px #0002}
+label{display:block;font-weight:600;margin:10px 0 4px}input,select,textarea{width:100%;font:inherit;padding:12px;border:1px solid #bbb;border-radius:10px;min-height:48px;background:#fff}
+textarea{min-height:90px}.row{display:flex;gap:8px}.row>*{flex:1}
+button,.btn{display:inline-block;font:inherit;font-weight:600;min-height:48px;padding:10px 16px;border-radius:10px;border:0;background:var(--p);color:#fff;cursor:pointer;text-decoration:none;text-align:center;margin:4px 4px 4px 0}
+.btn2{background:#e3ecf7;color:var(--p)}.nav{display:flex;gap:8px;position:sticky;bottom:0;background:var(--bg);padding:10px 0}.nav button{flex:1}
+.pill{display:inline-block;padding:4px 10px;border-radius:20px;font-size:14px;font-weight:700}.ok{background:#dff3e6;color:var(--ok)}.warn{background:#fff1dc;color:var(--warn)}.bad{background:#fde2e6;color:var(--bad)}
+.big{font-size:34px;font-weight:800;color:var(--ok)}.script{border-left:5px solid var(--p)}.script p{margin:6px 0 8px;font-size:18px}
+.disc{font-size:13px;background:#fff8e1;border:1px solid #f0d58a;border-radius:10px;padding:10px;margin:10px 0}
+pre{white-space:pre-wrap;background:#fafafa;border:1px solid #ddd;border-radius:8px;padding:10px;font:14px/1.4 ui-monospace,monospace;max-height:340px;overflow:auto}
+ul{padding-left:20px}li{margin:4px 0}.log{border-top:1px solid #eee;padding:8px 0;font-size:15px}.log img{max-width:120px;display:block;margin-top:4px;border-radius:6px}
+footer{font-size:13px;color:#555;text-align:center;padding:16px 16px 80px}
+@media print{header,.nav,button,.btn,footer,.noprint{display:none!important}section{display:none!important}section.printme{display:block!important}.card{box-shadow:none}pre{max-height:none;border:0}}
+#bot{max-width:640px;margin:auto;padding:10px 12px 20px}body.botmode main{display:none}body:not(.botmode) #bot{display:none}
+.msgs{display:flex;flex-direction:column;gap:8px}.m{max-width:88%;padding:10px 13px;border-radius:16px;background:#fff;box-shadow:0 1px 2px #0002}.m.me{align-self:flex-end;background:var(--p);color:#fff}
+.m .qr{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.m .qr button{margin:0;min-height:44px;font-size:15px}.m .ts{font-size:11px;opacity:.6}
+.clock{background:#102a4c;color:#fff;border-radius:12px;padding:12px;margin-bottom:10px}.clock b{font-size:28px}.ms li.done{opacity:.5;text-decoration:line-through}
+.sit{display:flex;flex-wrap:wrap;gap:6px}.sit button{flex:1 1 45%;margin:0;font-size:15px}
+#modal{position:fixed;inset:0;background:#0007;display:none;align-items:flex-end;z-index:20}#modal.on{display:flex}#modal .card{width:100%;max-height:90vh;overflow:auto;border-radius:16px 16px 0 0;margin:0}
+.how{background:#eef5ff;border-radius:8px;padding:8px;font-size:14px}
+#tabs{display:flex;gap:4px;margin-top:8px;overflow-x:auto}#tabs button{flex:1;margin:0;min-height:40px;padding:6px;font-size:14px;background:#ffffff22}#tabs button.on{background:#fff;color:var(--p)}
+#dos,#ver{display:none;max-width:640px;margin:auto;padding:12px}body[data-mode=dos] #dos,body[data-mode=ver] #ver{display:block}body[data-mode=dos] main,body[data-mode=ver] main{display:none}
+.it{display:flex;gap:10px;border-top:1px solid #eee;padding:10px 0}.it .th{width:64px;height:64px;flex:none;border-radius:8px;background:#e8edf5;display:flex;align-items:center;justify-content:center;font-size:12px;overflow:hidden;cursor:pointer}.it .th img{width:100%;height:100%;object-fit:cover}
+.it input,.it select{min-height:38px;padding:6px;font-size:14px}.ex{font-weight:800;color:var(--p)}.miss{color:var(--bad);font-weight:700}.chk{border-left:5px solid #6a4fb3}
+table.sch{border-collapse:collapse;width:100%;font-size:13px}table.sch td,table.sch th{border:1px solid #ccc;padding:4px;text-align:left}
+@media print{#dos .noprint,#ver,#bot,#tabs{display:none!important}}
+</style></head><body>
+<header><h1>✈️ FlightHelp — delay &amp; cancellation assistant</h1><div class="bar"><i id="prog"></i></div><div class="steps" id="stepname"></div><nav id="tabs"><button data-mode="bot">💬 Assistant</button><button data-mode="dos">📁 Dossier</button><button data-mode="ver">🔎 Check reason</button><button data-mode="wiz">🧭 Wizard</button></nav></header>
+<div id="dos"><div class="disc">Your claim dossier is stored only on this device (IndexedDB). General information only, not legal advice.</div>
+<div class="card noprint"><h2>📁 Claim dossier</h2><label for="dcat">Category for new files</label><select id="dcat"></select>
+<label for="dfiles">Add files (photos, screenshots, PDFs, emails)</label><input id="dfiles" type="file" multiple accept="image/*,application/pdf,.eml,.msg,.txt,.html">
+<label for="dcam">📷 Take photo</label><input id="dcam" type="file" accept="image/*" capture="environment">
+<p style="font-size:14px">Tick <b>Use in letter</b> to make an item a numbered exhibit (E1, E2…) referenced in your letters.</p></div>
+<div class="card noprint"><h3>Timeline (everything, in time order)</h3><div id="dlist"></div></div>
+<div class="card noprint"><h3>Claim status</h3><label for="cs_sent">Claim sent on</label><input id="cs_sent" type="date"><p id="cs_dl"></p>
+<label for="cs_stage">Stage</label><select id="cs_stage"><option>Not sent</option><option>Sent – awaiting reply</option><option>Reply received</option><option>Rejected</option><option>Paid</option><option>Letter before action sent</option><option>ADR</option><option>CAA PACT</option><option>Court (small claims)</option></select>
+<label for="cs_replyDate">Airline reply date</label><input id="cs_replyDate" type="date"><label for="cs_reply">Airline's reply (summary)</label><textarea id="cs_reply"></textarea><label for="cs_notes">Notes</label><textarea id="cs_notes"></textarea></div>
+<div class="card noprint"><button id="dzip">⬇️ Download dossier (ZIP)</button><button class="btn2" id="dprint">🖨 Print evidence schedule</button></div>
+<div id="sched"><h2>Evidence schedule</h2><div id="schedT"></div></div></div>
+<div id="ver"><div class="disc">General information only, not legal advice. These checks help you understand what happened; they are not proof on their own.</div>
+<div class="card"><h2>🔎 Check the airline's reason</h2><p>Reason recorded: <b id="v_reason"></b></p><label for="v_cat">Type of reason</label><select id="v_cat"><option value="weather">Weather</option><option value="atc">Air traffic control (ATC) restrictions</option><option value="strike">Strike / industrial action</option><option value="technical">Technical fault</option><option value="operational">"Operational reasons" / crew</option><option value="other">Other / not given</option></select>
+<div class="how" style="margin-top:10px"><b>The legal point:</b> the airline doesn't have to pay compensation if the disruption was caused by extraordinary circumstances that could not have been avoided even if all reasonable measures had been taken. <b>The burden of proving this is on the airline</b>: it must show both the circumstance and that it took all reasonable measures. You don't have to prove the reason was wrong, but independent records can help you decide whether to challenge it and what evidence to ask for.</div></div><div id="vchecks"></div></div>
+<div id="bot"><div class="disc">Claim Assistant · general information only, not legal advice.</div>
+<div class="clock" id="clock"></div>
+<div class="msgs" id="msgs"></div>
+<div class="card" style="margin-top:12px"><b>Tap any time:</b><div class="sit" id="sits"></div></div>
+<div class="card"><b>Upcoming milestones</b><ul class="ms" id="mlist"></ul></div>
+<button class="btn2" id="toWizard">Open full wizard / evidence / claim pack</button> <button class="btn2" id="botReset">Restart assistant</button></div>
+<div id="modal"><div class="card" id="mbody"></div></div>
+<main><button class="btn2" id="toBot">💬 Back to Claim Assistant</button>
+<!-- 1 TRIAGE -->
+<section id="s0"><div class="card"><h2>1. What happened?</h2>
+<label for="airline">Airline</label><select id="airline"></select>
+<div class="row"><div><label for="flightNo">Flight number</label><input id="flightNo" placeholder="EZY 802"></div><div><label for="date">Flight date</label><input id="date" type="date"></div></div>
+<div class="row"><div><label for="origin">From</label><select id="origin"></select></div><div><label for="dest">To (final destination)</label><select id="dest"></select></div></div>
+<p id="dist"></p>
+<label for="dtype">What happened?</label><select id="dtype"><option value="cancelled">Flight cancelled</option><option value="delayed">Flight delayed</option><option value="denied">Denied boarding (overbooked)</option><option value="missed">Missed connection (same booking)</option></select>
+<div id="cancelBox"><label for="notice">When were you told about the cancellation?</label><select id="notice"><option value="lt7">Less than 7 days before departure (incl. same day)</option><option value="7to14">7 to 14 days before</option><option value="gt14">More than 14 days before</option></select>
+<label for="rrDep">Replacement flight departs how many hours <b>earlier</b> than original? (0 if later / none offered)</label><input id="rrDep" type="number" step="0.25" value="0"></div>
+<label for="arrDelay" id="arrLbl">Arrival delay at final destination (hours, expected or actual)</label><input id="arrDelay" type="number" step="0.25" min="0" placeholder="e.g. 5">
+<label for="told">When were you told? (time)</label><input id="told" type="datetime-local">
+<label for="overnight"><input type="checkbox" id="overnight" style="width:auto;min-height:auto"> Disruption runs overnight / next day</label>
+</div><div class="card" id="regimeBox"></div></section>
+
+<!-- 2 RIGHT NOW -->
+<section id="s1"><div class="card"><h2>2. What to do right now</h2><div id="nowBox"></div></div></section>
+
+<!-- 3 SCRIPTS -->
+<section id="s2"><div class="card"><h2>3. What to say to staff</h2><p>Stay calm and polite. Tap <b>Copy</b> to paste into chat/email, or read it out.</p></div><div id="scripts"></div></section>
+
+<!-- 4 EVIDENCE -->
+<section id="s3"><div class="card"><h2>4. Evidence &amp; receipts</h2>
+<div class="row"><div><label for="bookingRef">Booking reference</label><input id="bookingRef" placeholder="EJX1234"></div><div><label for="pax">Passenger names</label><input id="pax" placeholder="Jane Smith"></div></div>
+<label for="email">Your email</label><input id="email" type="email"><label for="address">Your postal address</label><input id="address">
+<label for="reason">Reason given by airline</label><input id="reason" placeholder="e.g. technical fault"><label for="reasonBy">Who told you (name/role/channel)</label><input id="reasonBy" placeholder="Gate agent, SMS, app">
+<label for="rebook">Re-booking / re-routing offers</label><input id="rebook" placeholder="EZY 806 next day 07:00 – declined">
+<label for="bpass"><input type="checkbox" id="bpass" style="width:auto;min-height:auto"> Boarding pass / booking confirmation saved</label>
+</div>
+<div class="card"><h3>Add a timestamped note or photo</h3><textarea id="noteTxt" placeholder="18:05 – departures board shows CANCELLED. Desk queue 200 people."></textarea>
+<label for="photo">Photo (departure board, notice, queue)</label><input id="photo" type="file" accept="image/*" capture="environment"><button id="addNote">Add to log</button><div id="logList"></div></div>
+<div class="card"><h3>Add a receipt</h3><div class="row"><div><label for="rAmt">Amount</label><input id="rAmt" type="number" step="0.01"></div><div><label for="rCur">Currency</label><select id="rCur"><option>GBP</option><option>EUR</option><option>USD</option></select></div></div>
+<label for="rCat">Category</label><select id="rCat"><option>Meals &amp; refreshments</option><option>Hotel</option><option>Transport / transfers</option><option>Communications</option><option>Replacement flight</option><option>Other</option></select><label for="rDesc">Description</label><input id="rDesc" placeholder="Pret, sandwich + coffee"><button id="addRec">Add receipt</button><div id="recList"></div></div>
+<div class="card"><h3>How to document each item</h3><ul>
+<li><b>Departure boards/app screens:</b> photo or screenshot showing flight number, status and the clock/time.</li>
+<li><b>Reason given:</b> write exact words, who said it, time. Ask for it in writing (SMS/email counts).</li>
+<li><b>Re-booking offers:</b> note flight, times, and whether you accepted. Screenshot app/email offers.</li>
+<li><b>Receipts:</b> keep itemised originals (bank statements are often rejected). Photograph each one now. Spend reasonably — no alcohol, luxury hotels.</li>
+<li><b>Arrival time:</b> note when the aircraft door opened at your destination — that's the time that counts.</li>
+<li><b>Boarding pass &amp; booking ref:</b> screenshot both; keep the confirmation email.</li></ul></div></section>
+
+<!-- 5 CALC -->
+<section id="s4"><div class="card"><h2>5. Compensation check</h2><div id="calcBox"></div></div><div class="disc">General information only — not legal advice. Outcomes depend on the facts and the airline's evidence.</div>
+<div class="card"><h3>Extraordinary circumstances</h3><p><b>Usually NOT payable</b> (extraordinary): severe weather, air traffic control restrictions/strikes, security risks, political instability, bird strikes, airport/third-party strikes, hidden manufacturing defects.</p><p><b>Usually payable</b>: routine technical faults, crew shortages/sickness, the airline's own staff strikes, knock-on scheduling problems within the airline's control.</p><p>Even then, care (meals, hotel) and refund/re-routing rights still apply.</p></div>
+<div class="card"><h3>Time limits</h3><ul><li>England &amp; Wales (and N. Ireland): 6 years</li><li>Scotland: 5 years</li><li>EU: set by national law — e.g. Ireland 6 yrs, Germany 3 yrs, Spain 5 yrs, France 5 yrs, Netherlands 2 yrs (check locally)</li></ul></div></section>
+
+<!-- 6 CLAIM -->
+<section id="s5"><div class="disc">General information only — not legal advice. Check the letters before sending.</div>
+<div class="card" id="review"><h2>Review your facts</h2><p>Your letters only state what is below. Check each item is accurate and reflects your experience; edit anything wrong. Missing items appear as <b>[placeholders]</b> in the letters.</p><div id="rvlist"></div><div id="rvwarn"></div><button id="rvok">✅ These facts are accurate – generate letters</button></div>
+<div class="card"><h2>6a. Compensation claim</h2><pre id="L1"></pre><div class="tools" data-l="L1"></div></div>
+<div class="card"><h2>6b. Expenses claim</h2><pre id="L2"></pre><div class="tools" data-l="L2"></div></div>
+<div class="card"><h2>6c. Request for written reason</h2><pre id="L3"></pre><div class="tools" data-l="L3"></div></div>
+<div class="card"><h2>6d. Follow-up / letter before action</h2><pre id="L4"></pre><div class="tools" data-l="L4"></div></div><div class="card"><h3>Airline claim pages</h3><ul id="dir"></ul></div>
+<div class="card"><h3>If no reply in 8 weeks, or rejected</h3><ol>
+<li>Send a final "letter before action" giving 14 days.</li>
+<li><b>ADR scheme</b>: most UK airlines belong to AviationADR or CEDR (easyJet uses an ADR scheme — check its website for which). Free for you; decision binding on airline if accepted.</li>
+<li><b>CAA PACT</b> (Passenger Advice &amp; Complaints Team) if the airline isn't in an ADR scheme: <a href="https://www.caa.co.uk/">caa.co.uk</a>.</li>
+<li><b>Small claims</b>: England &amp; Wales — Money Claim Online (<a href="https://www.gov.uk/make-money-claim">gov.uk/make-money-claim</a>); Scotland — Simple Procedure (<a href="https://www.scotcourts.gov.uk/">scotcourts.gov.uk</a>).</li>
+<li><b>EU flights</b>: complain to the National Enforcement Body of the country where it happened (list on the European Commission's passenger-rights site), or use European Small Claims Procedure.</li></ol></div></section>
+<div class="nav"><button class="btn2" id="back">◀ Back</button><button id="next">Next ▶</button></div>
+</main>
+<footer>FlightHelp prototype · Saved on this device only · <b>General information only, not legal advice.</b> Based on UK261 (retained Reg. 261/2004) and EU261 as summarised by the UK CAA. <button class="btn2" id="reset">Clear my data</button></footer>
+<script>
+const AP={LHR:["London Heathrow",51.47,-0.4543,"UK"],LGW:["London Gatwick",51.1537,-0.1821,"UK"],STN:["London Stansted",51.885,0.235,"UK"],LTN:["London Luton",51.8747,-0.3683,"UK"],MAN:["Manchester",53.3537,-2.275,"UK"],BHX:["Birmingham",52.4539,-1.748,"UK"],BRS:["Bristol",51.3827,-2.7191,"UK"],EDI:["Edinburgh",55.95,-3.3725,"UK"],GLA:["Glasgow",55.8719,-4.4331,"UK"],ABZ:["Aberdeen",57.2019,-2.1978,"UK"],BFS:["Belfast Intl",54.6575,-6.2158,"UK"],NCL:["Newcastle",55.0375,-1.6917,"UK"],LPL:["Liverpool",53.3336,-2.8497,"UK"],EMA:["East Midlands",52.8311,-1.3281,"UK"],INV:["Inverness",57.5425,-4.0475,"UK"],
+DUB:["Dublin",53.4213,-6.2701,"EU"],AMS:["Amsterdam",52.3105,4.7683,"EU"],CDG:["Paris CDG",49.0097,2.5479,"EU"],FRA:["Frankfurt",50.0379,8.5622,"EU"],MUC:["Munich",48.3538,11.7861,"EU"],MAD:["Madrid",40.4983,-3.5676,"EU"],BCN:["Barcelona",41.2974,2.0833,"EU"],FCO:["Rome Fiumicino",41.8003,12.2389,"EU"],MXP:["Milan Malpensa",45.63,8.7231,"EU"],LIS:["Lisbon",38.7742,-9.1342,"EU"],FAO:["Faro",37.0144,-7.9659,"EU"],AGP:["Málaga",36.6749,-4.4991,"EU"],PMI:["Palma",39.5517,2.7388,"EU"],ALC:["Alicante",38.2822,-0.5582,"EU"],TFS:["Tenerife South",28.0445,-16.5725,"EU"],ATH:["Athens",37.9364,23.9445,"EU"],VIE:["Vienna",48.1103,16.5697,"EU"],BRU:["Brussels",50.901,4.4844,"EU"],CPH:["Copenhagen",55.618,12.656,"EU"],ARN:["Stockholm Arlanda",59.6519,17.9186,"EU"],WAW:["Warsaw",52.1657,20.9671,"EU"],PRG:["Prague",50.1008,14.26,"EU"],BUD:["Budapest",47.4369,19.2556,"EU"],
+GVA:["Geneva (CH*)",46.2381,6.109,"EU"],ZRH:["Zurich (CH*)",47.4647,8.5492,"EU"],OSL:["Oslo (NO*)",60.1939,11.1004,"EU"],KEF:["Reykjavik (IS*)",63.985,-22.6056,"EU"],
+JFK:["New York JFK",40.6413,-73.7781,"X"],DXB:["Dubai",25.2532,55.3657,"X"],IST:["Istanbul",41.2753,28.7519,"X"],RAK:["Marrakesh",31.6069,-8.0363,"X"],YYZ:["Toronto",43.6777,-79.6248,"X"],MCO:["Orlando",28.4312,-81.3081,"X"]};
+const AL=[["easyJet","UK","https://www.easyjet.com/en/claim/eu261"],["Ryanair","EU","https://help.ryanair.com/hc/en-us/sections/12488602662545-EU-261-Passenger-Rights"],["British Airways","UK","https://www.britishairways.com/content/information/delayed-or-cancelled-flights"],["Jet2","UK","https://www.jet2.com/en/delays-and-disruptions-form"],["Wizz Air","EU","https://wizzair.com/en-gb/help-centre"],["TUI Airways","UK","https://www.tui.co.uk/destinations/faq/airport-flights-and-luggage/feedback-on-your-flight-and-airport-experience/how-do-i-claim-my-flight-delay-compensation"],["Loganair","UK","https://www.loganair.co.uk/helpcentre/compensation/"],["Aer Lingus","EU","https://www.aerlingus.com/app/support/forms/flight-disruption-compensation-form"],["KLM","EU","https://www.klm.com/claim"],["Lufthansa","EU","https://www.lufthansa.com/gb/en/compensation-in-the-event-of-flight-irregularities"],["Other UK airline","UK",""],["Other EU airline","EU",""],["Non-UK/EU airline","X",""]];
+const STEPS=["Triage","Right now","What to say","Evidence","Compensation","Claim pack"];
+let S=JSON.parse(localStorage.getItem("fh")||"{}");S.step=S.step||0;S.log=S.log||[];S.rec=S.rec||[];
+const $=id=>document.getElementById(id),F=["airline","flightNo","date","origin","dest","dtype","notice","rrDep","arrDelay","told","overnight","bookingRef","pax","email","address","reason","reasonBy","rebook","bpass"];
+function save(){try{localStorage.setItem("fh",JSON.stringify(S))}catch(e){alert("Storage full – photo not saved; note it instead.");S.log.forEach(l=>{if(l.img&&l.img.length>200000)l.img=""});localStorage.setItem("fh",JSON.stringify(S))}}
+function hav(a,b){const R=6371,r=x=>x*Math.PI/180,A=AP[a],B=AP[b];const dl=r(B[1]-A[1]),dg=r(B[2]-A[2]);const h=Math.sin(dl/2)**2+Math.cos(r(A[1]))*Math.cos(r(B[1]))*Math.sin(dg/2)**2;return Math.round(2*R*Math.asin(Math.sqrt(h)))}
+function v(k){return S[k]}
+/* Core legal logic — exported for tests */
+function regime(o,d,carrier){const O=AP[o][3],D=AP[d][3],r=[];
+ if(O==="UK")r.push("UK261");if(O==="EU")r.push("EU261");
+ if(D==="UK"&&O!=="UK"&&(carrier==="UK"||carrier==="EU"))r.push("UK261");
+ if(D==="EU"&&O!=="EU"&&carrier==="EU")r.push("EU261");
+ return [...new Set(r)]}
+function band(km,o,d){const intra=AP[o][3]===AP[d][3]&&AP[o][3]!=="X";if(km<=1500)return 1;if(km<=3500||intra)return 2;return 3}
+const AMT={UK261:{1:220,2:350,3:520,sym:"£"},EU261:{1:250,2:400,3:600,sym:"€"}};
+function careThreshold(km){return km<=1500?2:km<=3500?3:4}
+function calc(i){const km=hav(i.origin,i.dest),b=band(km,i.origin,i.dest),regs=regime(i.origin,i.dest,i.carrier);
+ if(!regs.length)return{km,b,regs,amount:0,status:"none",why:"Neither UK261 nor EU261 appears to apply (non-UK/EU airline arriving from outside the UK/EU). Check the airline's own conditions or local law (e.g. Montreal Convention)."};
+ const reg=regs[0],full=AMT[reg][b],sym=AMT[reg].sym,d=+i.arrDelay||0,lim=[0,2,3,4][b];let amt=0,why="";
+ if(i.dtype==="delayed"||i.dtype==="missed"){
+  if(d<3){why="Arrival delay under 3 hours — no fixed compensation (Sturgeon rule needs 3h+ at final destination). Care rights may still apply.";}
+  else if(b===3&&d<4){amt=full/2;why="Long-haul, 3–4h late: 50% (Art 7(2)(c), as applied by the CAA).";}
+  else{amt=full;why="Arrived 3h+ late at final destination (Sturgeon C-402/07, Nelson C-581/10).";}
+  if(i.dtype==="missed")why+=" Missed connections count only if all flights were on one booking (Folkerts C-11/11).";}
+ else if(i.dtype==="cancelled"){const e=+i.rrDep||0;
+  if(i.notice==="gt14"){why="Told 14+ days ahead — no compensation (Art 5(1)(c)(i)). Refund or re-routing still due.";}
+  else if(i.notice==="7to14"&&e<=2&&d<4){why="Told 7–14 days ahead and re-routed to leave ≤2h early and arrive <4h late — no compensation (Art 5(1)(c)(ii)).";}
+  else if(i.notice==="lt7"&&e<=1&&d<2){why="Told <7 days ahead and re-routed to leave ≤1h early and arrive <2h late — no compensation (Art 5(1)(c)(iii)).";}
+  else if(d>0&&d<=lim){amt=full/2;why=`Re-routed arrival within ${lim}h of original — airline may reduce by 50% (Art 7(2)).`;}
+  else{amt=full;why="Cancellation with short notice — fixed compensation (Arts 5 and 7).";}}
+ else{if(d>0&&d<=lim){amt=full/2;why=`Denied boarding, re-routed within ${lim}h — 50% (Art 7(2)).`}else{amt=full;why="Denied boarding against your will (Art 4 and 7)."}}
+ return{km,b,regs,reg,sym,amount:amt,full,status:amt?"yes":"no",why}}
+function inp(){const a=AL.find(x=>x[0]===S.airline)||AL[0];return{origin:S.origin,dest:S.dest,carrier:a[1],dtype:S.dtype,notice:S.notice,rrDep:S.rrDep,arrDelay:S.arrDelay}}
+function money(sym,n){return sym+(+n).toFixed(n%1?2:0)}
+function build(){
+ $("airline").innerHTML=AL.map(a=>`<option>${a[0]}</option>`).join("");
+ const opts=Object.entries(AP).map(([k,a])=>`<option value="${k}">${k} – ${a[0]}</option>`).join("");$("origin").innerHTML=opts;$("dest").innerHTML=opts;
+ S.airline=S.airline||"easyJet";S.origin=S.origin||"EDI";S.dest=S.dest||"LGW";S.dtype=S.dtype||"cancelled";S.notice=S.notice||"lt7";
+ F.forEach(k=>{const e=$(k);if(S[k]!==undefined){e.type==="checkbox"?e.checked=S[k]:e.value=S[k]}e.addEventListener("input",()=>{S[k]=e.type==="checkbox"?e.checked:e.value;save();render()})});
+ $("dir").innerHTML=AL.filter(a=>a[2]).map(a=>`<li><a href="${a[2]}" target="_blank" rel="noopener">${a[0]}</a></li>`).join("");
+ document.querySelectorAll(".tools").forEach(t=>{const l=t.dataset.l;t.innerHTML=`<button data-a="copy">Copy</button><button class="btn2" data-a="dl">Download .txt</button><button class="btn2" data-a="pr">Print / PDF</button><a class="btn btn2" data-a="mail" href="#">Email</a>`;
+  t.addEventListener("click",ev=>{const a=ev.target.dataset.a,txt=$(l).textContent;if(a==="copy")copy(txt);if(a==="dl"){const b=new Blob([txt],{type:"text/plain"}),u=URL.createObjectURL(b),x=document.createElement("a");x.href=u;x.download=l+"-"+(S.flightNo||"claim").replace(/\s/g,"")+".txt";x.click()}
+   if(a==="pr"){document.querySelectorAll("section").forEach(s=>s.classList.remove("printme"));$("s5").classList.add("printme");window.print()}
+   if(a==="mail"){ev.preventDefault();location.href="mailto:?subject="+encodeURIComponent(txt.split("\n")[0].replace("Subject: ",""))+"&body="+encodeURIComponent(txt)}})});
+ $("addNote").onclick=()=>{const f=$("photo").files[0],t=$("noteTxt").value.trim();const push=img=>{S.log.push({t:new Date().toLocaleString("en-GB"),tsn:Date.now(),txt:t||(f?"Photo":""),img,fname:f?f.name:""});$("noteTxt").value="";$("photo").value="";save();render()};
+  if(f){addFile(f,"departure board",t||f.name).then(id=>{S.log.push({t:new Date().toLocaleString("en-GB"),tsn:Date.now(),txt:t||"Photo",did:id});$("noteTxt").value="";$("photo").value="";save();render()})}else{if(!t)return;push("")}};
+ $("addRec").onclick=()=>{const a=+$("rAmt").value;if(!a)return alert("Enter an amount");S.rec.push({t:new Date().toLocaleString("en-GB"),tsn:Date.now(),amt:a,cur:$("rCur").value,cat:$("rCat").value,desc:$("rDesc").value});$("rAmt").value="";$("rDesc").value="";save();render()};
+ document.body.addEventListener("click",e=>{if(e.target.dataset.del){const[k,i]=e.target.dataset.del.split(":");S[k].splice(+i,1);save();render()}if(e.target.dataset.copy!==undefined)copy(e.target.previousElementSibling.textContent)});
+ $("next").onclick=()=>go(1);$("back").onclick=()=>go(-1);$("reset").onclick=()=>{if(confirm("Delete all saved data on this device?")){localStorage.removeItem("fh");location.reload()}};
+ render()}
+function copy(t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast("Copied")).catch(()=>{const x=document.createElement("textarea");x.value=t;document.body.append(x);x.select();document.execCommand("copy");x.remove();toast("Copied")})}
+function toast(m){const d=document.createElement("div");d.textContent=m;d.style.cssText="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 18px;border-radius:20px;z-index:9";document.body.append(d);setTimeout(()=>d.remove(),1400)}
+function go(n){S.step=Math.max(0,Math.min(5,S.step+n));save();render();scrollTo(0,0)}
+function render(){
+ document.querySelectorAll("section").forEach((s,i)=>s.classList.toggle("on",i===S.step));$("prog").style.width=((S.step+1)/6*100)+"%";$("stepname").textContent=`Step ${S.step+1} of 6 · ${STEPS[S.step]}`;
+ $("back").style.visibility=S.step?"visible":"hidden";$("next").style.visibility=S.step<5?"visible":"hidden";
+ $("cancelBox").style.display=S.dtype==="cancelled"?"":"none";
+ $("arrLbl").textContent=S.dtype==="cancelled"||S.dtype==="denied"?"If re-routed: how many hours late will you arrive vs original? (blank = not re-routed yet)":"Arrival delay at final destination (hours, expected or actual)";
+ const c=calc(inp()),ct=careThreshold(c.km),sym=c.sym||"£",d=+S.arrDelay||0;
+ $("dist").innerHTML=`Great-circle distance: <b>${c.km.toLocaleString()} km</b> (band ${c.b})`;
+ $("regimeBox").innerHTML=c.regs.length?`<span class="pill ok">${c.regs.join(" + ")} applies</span><p>Using <b>${c.reg}</b> (amounts in ${sym}). ${c.regs.length>1?"Both regimes may apply; you can only be compensated once.":""}</p><p style="font-size:14px">Rule: departing the UK/EU on any airline, or arriving in the UK on a UK/EU airline, or arriving in the EU on an EU airline. *Switzerland, Norway, Iceland apply EU261 too.</p>`:`<span class="pill bad">Probably not covered</span><p>${c.why}</p>`;
+ const isC=S.dtype==="cancelled"||S.dtype==="denied";
+ $("nowBox").innerHTML=`${isC?`<h3>✅ You choose: refund OR re-routing (Art 8)</h3><ul><li><b>Refund</b> of the unused ticket within 7 days (and a return flight to your starting point if relevant), <b>or</b></li><li><b>Re-routing</b> at the earliest opportunity — <b>including on another airline</b> or by another route — or later at a date you choose.</li><li>If the airline won't arrange it, you may book a reasonable alternative and claim the cost back. Get a "no" in writing first if you can.</li></ul>`:`<h3>⏱ Long delay</h3><ul><li>If the delay reaches <b>5 hours</b> and you decide not to fly, you can get a full refund.</li><li>Stay airside/near the gate — the flight can recover time.</li></ul>`}
+ <h3>🍽 Right to care (Art 9)</h3><p>For this ${c.km} km flight, care starts after <b>${ct} hours</b> delay${isC?" (for cancellations, while you wait for the re-routed flight)":""}:</p><ul><li>Meals and refreshments in proportion to the wait</li><li>Two phone calls, emails or messages</li>${S.overnight||d>=8?`<li><b>Hotel</b> for overnight stays and <b>transfers</b> between airport and hotel</li>`:`<li>Hotel and transfers if you're delayed overnight</li>`}</ul>
+ <p class="pill warn">Keep every itemised receipt · spend reasonably (no alcohol or luxury)</p><p>If the airline gives nothing, buy what you reasonably need and claim it back later (Step 6).</p>
+ <h3>📱 Right now</h3><ol><li>Screenshot the cancellation/delay message and the departure board.</li><li>Ask for the reason in writing (Step 3).</li><li>Ask for the Article 14 rights notice.</li><li>Don't accept vouchers instead of cash unless you want them.</li></ol>`;
+ const sc=[["Ask for the reason in writing",`Please could you tell me the reason for the ${S.dtype==="delayed"?"delay":"cancellation"} of flight ${S.flightNo||"[number]"}, and give it to me in writing or by email?`],
+ ["Ask for meal vouchers and hotel",`Under UK261/EU261 Article 9 I'm entitled to meals and refreshments${S.overnight?" and a hotel with transfers tonight":""}. Please can you provide vouchers and arrange the hotel?`],
+ ["Ask for re-routing on another airline",`I'd like to be re-routed at the earliest opportunity under Article 8, including on another airline if that's sooner. Can you book me on the next available flight with any carrier?`],
+ ["Ask for the rights notice (Art 14)",`Article 14 requires you to give passengers a written notice setting out our rights to compensation and assistance. Please may I have a copy?`],
+ ["Refuse vouchers instead of cash",`Thank you, but I don't agree to travel vouchers in place of compensation or a refund. I'd like payment in money, as the regulation allows.`],
+ ["If they can't help",`If you're unable to provide this, please confirm that in writing and that I can make reasonable arrangements myself and claim the cost back.`],
+ ["Ask for your name",`Could I take your name, please, so I can note who I've spoken to?`]];
+ $("scripts").innerHTML=sc.map(s=>`<div class="card script"><b>${s[0]}</b><p>${s[1]}</p><button data-copy>Copy</button></div>`).join("");
+ $("logList").innerHTML=S.log.map((l,i)=>`<div class="log"><b>${l.t}</b> – ${esc(l.txt)} ${l.fname&&!l.img?`<i>(photo ${esc(l.fname)} kept on phone)</i>`:""}${l.img?`<img src="${l.img}" alt="evidence photo">`:""}<button class="btn2" data-del="log:${i}">Delete</button></div>`).join("")||"<p>No notes yet.</p>";
+ const tot={};S.rec.forEach(r=>tot[r.cur]=(tot[r.cur]||0)+r.amt);const totS=Object.entries(tot).map(([k,v])=>k+" "+v.toFixed(2)).join(" + ")||"0.00";
+ $("recList").innerHTML=S.rec.map((r,i)=>`<div class="log">${r.t} · <b>${r.cur} ${r.amt.toFixed(2)}</b> · ${esc(r.cat)} · ${esc(r.desc)} <button class="btn2" data-del="rec:${i}">Delete</button></div>`).join("")+`<p><b>Total: ${totS}</b></p>`;
+ $("calcBox").innerHTML=`<p>${c.km} km · ${c.regs.join(" + ")||"no regime"}</p><div class="big">${c.amount?money(sym,c.amount)+" per person":"No fixed compensation"}</div><p><span class="pill ${c.amount?"ok":"warn"}">${c.amount?"Likely eligible":"Not on these facts"}</span></p><p>${c.why}</p><p>Compensation is <b>not</b> due if the airline proves extraordinary circumstances (see below). Reason given: <b>${esc(S.reason||"not recorded")}</b>.</p>`;
+ const A=AL.find(x=>x[0]===S.airline)||AL[0],fl=`${S.flightNo||"[flight no]"} on ${S.date||"[date]"} from ${AP[S.origin][0]} (${S.origin}) to ${AP[S.dest][0]} (${S.dest})`,sig=`\n\nYours faithfully,\n${S.pax||"[Name]"}\n${S.address||"[Address]"}\n${S.email||"[Email]"}`,pn=(S.pax||"").split(",").filter(Boolean).length||1;
+ $("L1").textContent=`Subject: ${c.reg||"UK261"} compensation claim – ${S.flightNo||""} ${S.date||""} – booking ${S.bookingRef||"[ref]"}\n\nTo ${S.airline} Customer Relations,\n\nI was booked on flight ${fl}, booking reference ${S.bookingRef||"[ref]"}, passenger(s): ${S.pax||"[names]"}.\n\nThe flight was ${{cancelled:"cancelled",delayed:"delayed",denied:"subject to denied boarding",missed:"delayed, causing a missed connection on the same booking"}[S.dtype]}. ${S.dtype==="cancelled"?`I was notified ${{lt7:"less than 7 days",["7to14"]:"between 7 and 14 days",gt14:"more than 14 days"}[S.notice]} before departure. `:""}I reached my final destination approximately ${d||"[x]"} hours after the scheduled arrival time. The reason given was: "${S.reason||"[reason]"}"${S.reasonBy?` (told by ${S.reasonBy})`:""}.\n\nUnder ${c.reg==="EU261"?"Regulation (EC) No 261/2004":"Regulation (EC) No 261/2004 as retained in UK law (UK261)"}, Articles ${S.dtype==="denied"?"4":S.dtype==="cancelled"?"5":"6"} and 7${S.dtype==="delayed"||S.dtype==="missed"?", as interpreted by the Court of Justice in Sturgeon v Condor (C-402/07) and Nelson v Lufthansa (C-581/10), which confirm that passengers arriving 3 hours or more late are entitled to compensation as for a cancellation":""}, I claim compensation of ${money(sym,c.amount||c.full||0)} per passenger (${pn} passenger(s), total ${money(sym,(c.amount||c.full||0)*pn)}) for a flight of ${c.km} km.\n\nIf you consider that extraordinary circumstances apply, please provide evidence of the specific circumstances and the reasonable measures you took to avoid the disruption. I do not accept vouchers in place of payment.\n\nPlease pay within 28 days to the account I will provide, or respond with your reasons. If not resolved within 8 weeks I will refer this to the relevant ADR scheme / CAA or the courts.${sig}`;
+ $("L2").textContent=`Subject: Expenses reimbursement (Articles 8 and 9) – ${S.flightNo||""} ${S.date||""} – booking ${S.bookingRef||"[ref]"}\n\nTo ${S.airline} Customer Relations,\n\nFollowing the disruption to flight ${fl}, you did not ${S.dtype==="delayed"?"provide":"fully provide"} the care and assistance required by Article 9 (and re-routing under Article 8) of ${c.reg||"UK261"}. I therefore incurred the following reasonable expenses, receipts attached:\n\n${S.rec.map((r,i)=>`${i+1}. ${r.t} – ${r.cat} – ${r.desc||""} – ${r.cur} ${r.amt.toFixed(2)}`).join("\n")||"[No receipts logged yet]"}\n\nTOTAL: ${totS}\n\nRe-booking offered: ${S.rebook||"[none/details]"}.\n\nPlease reimburse this amount in full within 28 days. This claim is separate from, and in addition to, any compensation under Article 7.${sig}`;
+ $("L3").textContent=`Subject: Request for reason and operational information – ${S.flightNo||""} ${S.date||""}\n\nTo ${S.airline} Customer Relations,\n\nRegarding flight ${fl} (booking ${S.bookingRef||"[ref]"}), please provide in writing:\n1. The precise reason for the ${S.dtype==="delayed"?"delay":"disruption"}.\n2. The scheduled and actual departure and arrival times (doors open).\n3. If you rely on extraordinary circumstances: supporting evidence (e.g. METAR/ATC slot records, technical log extracts) and the reasonable measures taken.\n4. A copy of the Article 14 notice of passenger rights.\n\nI also request any personal data you hold about me relating to this flight under UK GDPR Article 15.${sig}`;
+}
+function esc(s){return String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+/* ===== Claim Assistant (rules-based, offline) ===== */
+const CLAIM_PACK_LOCKED=false; // paywall placeholder: set true to gate the claim pack
+const QS=new URLSearchParams(location.search),OFF=(+QS.get("t")||0)*60000; // debug: ?t=<minutes> fast-forward
+const now=()=>Date.now()+OFF;
+S.bot=S.bot||{msgs:[],fired:[],start:null,stage:"type"};if(S.mode===undefined)S.mode="bot";
+const SCR={reason:`Please could you tell me the reason for the disruption to flight ${S.flightNo||"[number]"}, and put it in writing or email it to me?`,
+meals:"Under UK261/EU261 Article 9 I'm entitled to meals and refreshments while I wait. Please can you give me meal vouchers?",
+hotel:"As I'm now delayed overnight, Article 9 entitles me to a hotel and transfers. Please can you book these for me?",
+reroute:"I'd like re-routing at the earliest opportunity under Article 8, including on another airline if that is sooner. Please book the next available flight with any carrier.",
+notice:"Article 14 requires you to give me a written notice of my passenger rights. Please may I have a copy?",
+vouchers:"Thank you, but I don't accept travel vouchers in place of compensation or a refund. I'd like payment in money, as the regulation allows.",
+nostaff:"I tried to find staff at [place] at [time] and nobody was available. I'll make reasonable arrangements myself and claim the costs back under Articles 8 and 9.",
+ec:"Please give me in writing the specific extraordinary circumstance and confirm it affected this particular flight. I'll keep my rights to care and re-routing either way.",
+refund:"My flight is delayed by more than 5 hours and I've decided not to travel. Please refund my unused ticket under Article 8."};
+const REC={note:{t:"Timestamped note",how:"Write what happened in your own words, with the time. Facts only: who, what, where."},
+board:{t:"Photo of departure board",how:"Photograph the board showing your flight number, status and a visible clock. Take another each time it changes.",photo:1},
+receipt:{t:"Receipt",how:"Get an itemised receipt (not just a card slip) and photograph it now. Spend reasonably: no alcohol or luxury.",rec:1},
+staff:{t:"Staff name & what they said",how:"Note their name or badge number, role and their exact words. Ask them to put it in writing or email it.",who:1},
+rebook:{t:"Rebooking offer",how:"Note the flight number and times offered, the channel (desk/app/SMS) and whether you accepted. Screenshot app offers.",field:"rebook"},
+reason:{t:"Reason given",how:"Write the exact words and who gave them. Ask for it in writing; an SMS or email from the airline counts.",field:"reason",who:1},
+doors:{t:"Time the doors opened on arrival",how:"Compensation is based on when the aircraft door opens at your destination. Note the time from your phone clock and take a photo/screenshot showing the time.",dt:1}};
+function ms(){const c=calc(inp()),ct=careThreshold(c.km),C=S.dtype==="cancelled"||S.dtype==="denied",L=[];
+ L.push({id:"m15",at:.25,txt:`Ask for the <b>reason in writing</b> and the Article 14 rights notice.`,sc:"reason",rec:"reason"});
+ L.push({id:"m30",at:.5,txt:"Photograph the <b>departure board</b> now showing the flight status and clock.",rec:"board"});
+ if(C)L.push({id:"c45",at:.75,txt:"Have you chosen <b>refund or re-routing</b>? If re-routing, ask for the earliest flight on <b>any airline</b>.",sc:"reroute",rec:"rebook"});
+ L.push({id:"care",at:ct,txt:`It's now ${ct}h: for this ${c.km} km flight you're <b>entitled to meals and refreshments</b> and two calls/emails. Ask for vouchers.`,sc:"meals",rec:"receipt"});
+ if(!C){L.push({id:"d3",at:3,txt:"3h: the <b>compensation threshold</b> is arriving 3h+ late. Record the exact time the aircraft <b>doors open</b> when you land.",rec:"doors"});
+  L.push({id:"d5",at:5,txt:"5h: you can now choose <b>not to travel and get a refund</b> (and a flight back to your origin if relevant).",sc:"refund",rec:"note"});}
+ L.push({id:"night",at:6,txt:"If you won't get away tonight you're entitled to a <b>hotel and transfers</b>. Ask now, before rooms run out.",sc:"hotel",rec:"receipt"});
+ return L}
+function addMsg(from,html,acts){S.bot.msgs.push({from,html,acts:acts||[],ts:new Date(now()).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})});save();renderBot();setTimeout(()=>scrollTo(0,document.body.scrollHeight),30)}
+function scriptHtml(k){return `<div class="card script" style="margin:8px 0 0;color:#111"><p>${SCR[k]}</p><button data-copyt="${k}">Copy script</button></div>`}
+function next(){const b=S.bot,c=calc(inp());
+ if(b.stage==="type")addMsg("bot","Hi, I'm your Claim Assistant. I'll guide you through this. <b>What's happened?</b>",[["Cancelled","t:cancelled"],["Delayed","t:delayed"],["Denied boarding","t:denied"],["Missed connection","t:missed"]]);
+ if(b.stage==="where")addMsg("bot","<b>Where are you now?</b>",[["At home","w:home"],["On the way","w:way"],["At the airport","w:airport"],["On board / arrived","w:board"]]);
+ if(b.stage==="details")addMsg("bot",`Is this your flight? <b>${esc(S.airline)} ${esc(S.flightNo||"")}</b> ${S.origin} → ${S.dest} on ${S.date||"(date)"} · ${c.km} km · ${c.regs.join(" + ")||"no regime"}`,[["Yes, that's right","d:ok"],["Edit details","d:edit"]]);
+ if(b.stage==="clock")addMsg("bot","When you get the message, tap <b>I've just been told</b>. I'll start a clock and prompt you at each point your rights change.",[["⏱ I've just been told","start"],["I was told earlier","startEarlier"]]);}
+function act(a){const b=S.bot,[k,v]=a.split(":");
+ if(k==="t"){S.dtype=v;sync();addMsg("me",{cancelled:"Cancelled",delayed:"Delayed",denied:"Denied boarding",missed:"Missed connection"}[v]);b.stage="where";next()}
+ else if(k==="w"){b.where=v;addMsg("me",{home:"At home",way:"On the way",airport:"At the airport",board:"On board / arrived"}[v]);
+  if(v==="home"||v==="way")addMsg("bot",`Tip: ${S.dtype==="cancelled"?"don't rush to the airport. Check the app/email for a rebooking offer and screenshot everything. You can still claim meals/hotel if you wait at the airport for a re-routed flight.":"keep heading to the airport and check in on time. Delays can shorten."}`);
+  b.stage="details";next()}
+ else if(k==="d"){if(v==="edit")return form("details");addMsg("me","Yes, that's right");b.stage="clock";next()}
+ else if(k==="start"||k==="startEarlier"){if(k==="startEarlier")return form("earlier");startClock(now())}
+ else if(k==="rec")form(v);else if(k==="sit")situation(v);else if(k==="sum")summary();
+ else if(k==="claim"){if(CLAIM_PACK_LOCKED){addMsg("bot","The claim pack is a premium feature. (Locked placeholder.)");return}S.mode="wiz";S.step=5;save();render();scrollTo(0,0)}
+ else if(k==="wiz"){S.mode="wiz";S.step=+v||0;save();render()}}
+function startClock(t){S.bot.start=t;S.bot.fired=[];S.bot.stage="live";S.told=new Date(t-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,16);sync();
+ S.log.push({t:new Date(t).toLocaleString("en-GB"),txt:`Told about ${S.dtype}: clock started`});addMsg("me","I've just been told");
+ const C=S.dtype==="cancelled"||S.dtype==="denied";
+ addMsg("bot",C?"Clock started. <b>Your rights right now:</b> choose a <b>refund</b> or <b>re-routing</b> at the earliest opportunity, including on another airline. While you wait you're entitled to care (meals, calls, hotel if overnight). First, screenshot the cancellation message and ask for the reason.":"Clock started. Stay near the gate. I'll prompt you when you become entitled to meals, at the compensation threshold, and at 5h for the refund option. First, photograph the departures board.",[["📷 Record board now","rec:board"],["Record reason given","rec:reason"]]);
+ askNotify();tick()}
+function askNotify(){if("Notification"in window&&Notification.permission==="default")try{Notification.requestPermission()}catch(e){}}
+function tick(){const b=S.bot;if(!b.start)return renderClock();const h=(now()-b.start)/36e5;
+ ms().forEach(m=>{if(h>=m.at&&!b.fired.includes(m.id)){b.fired.push(m.id);addMsg("bot","⏰ "+m.txt+(m.sc?scriptHtml(m.sc):""),m.rec?[["✍️ Record now: "+REC[m.rec].t,"rec:"+m.rec]]:[]);
+  if("Notification"in window&&Notification.permission==="granted")try{new Notification("Claim Assistant",{body:m.txt.replace(/<[^>]+>/g,"")})}catch(e){}}});
+ renderClock()}
+function renderClock(){const b=S.bot;if(!b.start){$("clock").innerHTML="Clock not started.";$("mlist").innerHTML=ms().map(m=>`<li>+${m.at}h: ${m.txt.replace(/<[^>]+>/g,"")}</li>`).join("");return}
+ const e=now()-b.start,hh=Math.floor(e/36e5),mm=Math.floor(e%36e5/6e4);$("clock").innerHTML=`Disruption clock<br><b>${hh}h ${String(mm).padStart(2,"0")}m</b> since told · started ${new Date(b.start).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}`;
+ $("mlist").innerHTML=ms().map(m=>`<li class="${b.fired.includes(m.id)?"done":""}">${new Date(b.start+m.at*36e5).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})} (+${m.at}h): ${m.txt.replace(/<[^>]+>/g,"")}</li>`).join("")}
+const SITS={vouchers:["Staff offering vouchers only","For <b>meals</b>, vouchers are fine; that's how care is normally given. For <b>compensation or a refund</b> you can refuse travel vouchers and insist on money.","vouchers","note"],
+rebook:["Offered a rebooking","You can accept, ask for an earlier flight on <b>another airline</b>, or take a refund. Before accepting, note the new departure and arrival times: they decide whether compensation is reduced or lost.","reroute","rebook"],
+ec:["Told it's extraordinary / weather","Ask for specifics in writing. Weather or ATC <i>may</i> be extraordinary, but technical faults and crew shortages usually aren't. You keep your rights to care and re-routing either way.","ec","reason"],
+nostaff:["No staff around","Note where you looked and when, and photograph the empty desk. Then make <b>reasonable</b> arrangements yourself and keep itemised receipts.","nostaff","note"],
+hotel:["Need a hotel","If you're stuck overnight the airline must provide a hotel and transfers. Ask first; if they can't, book a reasonable airport hotel and keep the receipt.","hotel","receipt"],
+missed:["Missed a connection","If both flights were on <b>one booking</b>, compensation is based on your arrival delay at the <b>final destination</b>, and the airline must re-route you. Separate tickets usually aren't covered.","reroute","rebook"],
+landed:["Landed now","Welcome back. Record the time the <b>doors opened</b>; it's the time that decides compensation.",null,"doors"]};
+function situation(k){const s=SITS[k];addMsg("me",s[0]);addMsg("bot",s[1]+(s[2]?scriptHtml(s[2]):"")+`<div class="how"><b>Record:</b> ${REC[s[3]].how}</div>`,[["✍️ Record now: "+REC[s[3]].t,"rec:"+s[3]]].concat(k==="landed"?[["Summarise my claim","sum"]]:[]))}
+function form(k){let h="";const r=REC[k];
+ if(k==="details")h=`<h3>Flight details</h3><label>Airline</label><select id="f_airline">${AL.map(a=>`<option ${a[0]===S.airline?"selected":""}>${a[0]}</option>`).join("")}</select><label>Flight number</label><input id="f_flightNo" value="${esc(S.flightNo)}"><label>Date</label><input id="f_date" type="date" value="${esc(S.date)}"><label>From</label><select id="f_origin">${$("origin").innerHTML}</select><label>To</label><select id="f_dest">${$("origin").innerHTML}</select><label>Scheduled arrival (optional)</label><input id="f_sched" type="datetime-local" value="${esc(S.schedArr)}">`;
+ else if(k==="earlier")h=`<h3>When were you told?</h3><input id="f_when" type="datetime-local">`;
+ else{h=`<h3>${r.t}</h3><div class="how">💡 ${r.how}</div>`;
+  if(r.rec)h+=`<label>Amount</label><input id="f_amt" type="number" step="0.01"><label>Currency</label><select id="f_cur"><option>GBP</option><option>EUR</option></select><label>Category</label><select id="f_cat">${$("rCat").innerHTML}</select><label>Description</label><input id="f_desc">`;
+  else if(r.dt)h+=`<label>Doors opened at</label><input id="f_dt" type="datetime-local" value="${new Date(now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,16)}">`;
+  else h+=`<label>${r.field==="rebook"?"Flight & times offered":r.field==="reason"?"Exact words":"Details"}</label><textarea id="f_txt"></textarea>`;
+  if(r.who)h+=`<label>Who (name / role / channel)</label><input id="f_who">`;
+  h+=`<label>Photo (optional)</label><input id="f_photo" type="file" accept="image/*" capture="environment">`}
+ $("mbody").innerHTML=h+`<div><button id="f_save">Save</button><button class="btn2" id="f_cancel">Cancel</button></div>`;$("modal").classList.add("on");
+ if(k==="details"){$("f_origin").value=S.origin;$("f_dest").value=S.dest}
+ $("f_cancel").onclick=()=>$("modal").classList.remove("on");
+ $("f_save").onclick=()=>{const g=id=>($(id)||{}).value||"";
+  if(k==="details"){["airline","flightNo","date","origin","dest"].forEach(f=>S[f]=g("f_"+f));S.schedArr=g("f_sched");sync();$("modal").classList.remove("on");addMsg("me","Details updated");S.bot.stage="details";return next()}
+  if(k==="earlier"){const t=new Date(g("f_when")).getTime();$("modal").classList.remove("on");return startClock(isNaN(t)?now():t)}
+  const fin=(img,did)=>{const ts=new Date(now()).toLocaleString("en-GB");let txt="";
+   if(r.rec){const a=+g("f_amt");if(a)S.rec.push({t:ts,tsn:now(),amt:a,cur:g("f_cur"),cat:g("f_cat"),desc:g("f_desc"),did});txt=`Receipt ${g("f_cur")} ${a.toFixed(2)} – ${g("f_desc")}`}
+   else if(r.dt){S.doors=g("f_dt");txt="Aircraft doors opened at "+g("f_dt").replace("T"," ");if(S.schedArr){const d=(new Date(S.doors)-new Date(S.schedArr))/36e5;if(d>0){S.arrDelay=d.toFixed(2);txt+=` (${d.toFixed(1)}h late)`}}}
+   else{txt=g("f_txt");if(r.field)S[r.field]=txt;if(r.who&&g("f_who")){if(k==="reason")S.reasonBy=g("f_who");txt+=` (by ${g("f_who")})`}}
+   S.log.push({t:ts,tsn:now(),txt:`[${r.t}] ${txt||"photo"}`,kind:k,did});if(k==="reason")setTimeout(()=>addMsg("bot","Would you like to check the reason against independent records (flight history, weather, ATC, strikes)? The airline must prove extraordinary circumstances, but checking helps you decide what to ask for.",[["🔎 Check the reason","ver"]]),50);S.bot.recd=S.bot.recd||{};S.bot.recd[k]=1;sync();$("modal").classList.remove("on");addMsg("me","✅ Saved: "+esc(r.t));
+   if(k==="doors")summary()};
+  const f=($("f_photo")||{}).files&&$("f_photo").files[0];if(f)addFile(f,CATMAP[k]||"other",r.t+(g("f_desc")||g("f_txt")?": "+(g("f_desc")||g("f_txt")):"")).then(id=>fin("",id));else fin("")}}
+function summary(){const R=S.bot.recd||{},c=calc(inp()),miss=[];
+ if(!S.bookingRef)miss.push("booking reference");if(!S.reason)miss.push(["reason given","rec:reason"]);if(!R.board)miss.push(["departure board photo","rec:board"]);
+ if(!R.staff&&!S.reasonBy)miss.push(["staff name / what they said","rec:staff"]);if((S.dtype==="delayed"||S.dtype==="missed")&&!S.doors)miss.push(["doors-open time","rec:doors"]);
+ if(S.dtype==="cancelled"&&!S.rebook)miss.push(["rebooking offer","rec:rebook"]);
+ const tot={};S.rec.forEach(r=>tot[r.cur]=(tot[r.cur]||0)+r.amt);
+ addMsg("bot",`<b>Your claim so far</b><br>${S.log.length} log entries · ${S.rec.length} receipts (${Object.entries(tot).map(([k,v])=>k+" "+v.toFixed(2)).join(" + ")||"none"})<br>Estimated compensation: <b>${c.amount?money(c.sym,c.amount)+" per person":"none on current facts"}</b> (${c.why})<br>${miss.length?"<b>⚠️ Missing:</b> "+miss.map(m=>typeof m==="string"?m:m[0]).join(", "):"✅ Evidence looks complete."}<div class="disc" style="color:#111">General information only, not legal advice.</div>`,
+  miss.filter(m=>typeof m!=="string").map(m=>["Add "+m[0],m[1]]).concat([["📄 Open claim pack","claim"],["Add booking ref","wiz:3"]]))}
+function sync(){F.forEach(k=>{const e=$(k);if(e&&S[k]!==undefined){e.type==="checkbox"?e.checked=!!S[k]:e.value=S[k]}});save();render()}
+function renderBot(){document.body.classList.toggle("botmode",S.mode==="bot");if(S.mode==="bot")$("stepname").textContent="💬 Claim Assistant";
+ $("msgs").innerHTML=S.bot.msgs.map((m,i)=>`<div class="m ${m.from==="me"?"me":""}"><div>${m.html}</div>${m.acts.length?`<div class="qr">${m.acts.map(a=>`<button data-act="${a[1]}">${a[0]}</button>`).join("")}</div>`:""}<div class="ts">${m.ts}</div></div>`).join("");
+ $("sits").innerHTML=Object.entries(SITS).map(([k,s])=>`<button class="btn2" data-act="sit:${k}">${s[0]}</button>`).join("");renderClock()}
+document.addEventListener("click",e=>{const a=e.target.dataset.act;if(a)act(a);const t=e.target.dataset.copyt;if(t)copy(SCR[t])});
+$("toWizard").onclick=()=>{S.mode="wiz";save();render()};$("toBot").onclick=()=>{S.mode="bot";save();render();renderBot()};
+$("botReset").onclick=()=>{if(confirm("Restart the assistant? (Evidence is kept.)")){S.bot={msgs:[],fired:[],start:null,stage:"type"};save();renderBot();next()}};
+const _render=render;render=function(){_render();renderBot()};
+</script><script>/* ===== Dossier (IndexedDB), reason checks, evidence-driven letters ===== */
+const ICAO={LHR:"EGLL",LGW:"EGKK",STN:"EGSS",LTN:"EGGW",MAN:"EGCC",BHX:"EGBB",BRS:"EGGD",EDI:"EGPH",GLA:"EGPF",ABZ:"EGPD",BFS:"EGAA",NCL:"EGNT",LPL:"EGGP",EMA:"EGNX",INV:"EGPE",DUB:"EIDW",AMS:"EHAM",CDG:"LFPG",FRA:"EDDF",MUC:"EDDM",MAD:"LEMD",BCN:"LEBL",FCO:"LIRF",MXP:"LIMC",LIS:"LPPT",FAO:"LPFR",AGP:"LEMG",PMI:"LEPA",ALC:"LEAL",TFS:"GCTS",ATH:"LGAV",VIE:"LOWW",BRU:"EBBR",CPH:"EKCH",ARN:"ESSA",WAW:"EPWA",PRG:"LKPR",BUD:"LHBP",GVA:"LSGG",ZRH:"LSZH",OSL:"ENGM",KEF:"BIKF",JFK:"KJFK",DXB:"OMDB",IST:"LTFM",RAK:"GMMX",YYZ:"CYYZ",MCO:"KMCO"};
+const IATA2ICAO={U2:"EZY",EC:"EJU",DS:"EZS",FR:"RYR",RK:"RUK",BA:"BAW",LS:"EXS",W6:"WZZ",W9:"WUK",BY:"TOM",LM:"LOG",EI:"EIN",KL:"KLM",LH:"DLH",VS:"VIR",AF:"AFR",IB:"IBE",VY:"VLG",SK:"SAS",TP:"TAP",AZ:"ITY",LX:"SWR",OS:"AUA",SN:"BEL"};
+const AL_IATA={"easyJet":"U2","Ryanair":"FR","British Airways":"BA","Jet2":"LS","Wizz Air":"W6","TUI Airways":"BY","Loganair":"LM","Aer Lingus":"EI","KLM":"KL","Lufthansa":"LH"};
+const CATS=["boarding pass","booking confirmation","departure board","receipt","airline communication","reason evidence","flight history","weather record","ATC/strike notice","correspondence sent","correspondence received","other"];
+const CATMAP={board:"departure board",receipt:"receipt",reason:"reason evidence",staff:"airline communication",rebook:"airline communication",doors:"flight history",note:"other"};
+S.dos=S.dos||[];S.claim=S.claim||{};
+const dbp=new Promise((res,rej)=>{const r=indexedDB.open("fhdb",1);r.onupgradeneeded=()=>r.result.createObjectStore("files");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const idb=(m,...a)=>dbp.then(db=>new Promise((res,rej)=>{const q=db.transaction("files",m==="get"?"readonly":"readwrite").objectStore("files")[m](...a);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)}));
+const URLS={};async function furl(id){if(URLS[id])return URLS[id];const r=await idb("get",id);return r?URLS[id]=URL.createObjectURL(r.blob):""}
+async function addFile(f,cat,desc,extra){const id="f"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);await idb("put",{blob:f,name:f.name,type:f.type},id);
+ S.dos.push(Object.assign({id,cat,tsn:now(),desc:desc||f.name,use:true,name:f.name,mime:f.type,size:f.size,file:true},extra||{}));save();renderDos();return id}
+function parseGB(t){const m=String(t).match(/(\d+)\/(\d+)\/(\d+),?\s*(\d+):(\d+)/);return m?new Date(+m[3],m[2]-1,+m[1],+m[4],+m[5]).getTime():0}
+const tsOf=x=>x.tsn||parseGB(x.t)||0,fmt=n=>n?new Date(n).toLocaleString("en-GB",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"[time]";
+function exhibits(){const m={};S.dos.filter(d=>d.use).sort((a,b)=>a.tsn-b.tsn).forEach((d,i)=>m[d.id]="E"+(i+1));return m}
+const exRef=id=>{const e=id&&exhibits()[id];return e?` (Exhibit ${e})`:""};
+function timeline(){return [...S.log.map((l,i)=>({k:"log",i,ts:tsOf(l),o:l})),...S.rec.map((r,i)=>({k:"rec",i,ts:tsOf(r),o:r})),...S.dos.map((d,i)=>({k:"dos",i,ts:d.tsn,o:d}))].sort((a,b)=>a.ts-b.ts)}
+function renderDos(){if(!$("dlist"))return;const ex=exhibits();
+ $("dlist").innerHTML=timeline().map(x=>{const o=x.o;
+  if(x.k==="dos")return `<div class="it"><div class="th" data-prev="${o.id}" id="th_${o.id}">${o.file?(o.mime||"").split("/")[1]||"file":"note"}</div><div style="flex:1">${ex[o.id]?`<span class="ex">${ex[o.id]}</span> `:""}<small>${fmt(o.tsn)}</small><select data-dosf="${o.id}:cat">${CATS.map(c=>`<option ${c===o.cat?"selected":""}>${c}</option>`).join("")}</select><input data-dosf="${o.id}:desc" value="${esc(o.desc)}" aria-label="description">${o.finding?`<div><b>Finding:</b> ${esc(o.finding)} – ${esc(o.note||"")}</div>`:""}<label style="font-weight:400;margin:4px 0"><input type="checkbox" style="width:auto;min-height:auto" data-dosu="${o.id}" ${o.use?"checked":""}> Use in letter</label><button class="btn2" data-dosdel="${o.id}" style="min-height:36px;padding:4px 10px">Delete</button></div></div>`;
+  if(x.k==="rec")return `<div class="it"><div class="th">£€</div><div><small>${esc(o.t)}</small><br>Receipt <b>${o.cur} ${o.amt.toFixed(2)}</b> · ${esc(o.cat)} · ${esc(o.desc)}${o.did?" · file "+(ex[o.did]||"(not in letter)"):" · <span class='miss'>no receipt image</span>"}</div></div>`;
+  return `<div class="it"><div class="th">📝</div><div><small>${esc(o.t)}</small><br>${esc(o.txt)}${o.did&&ex[o.did]?` · <span class="ex">${ex[o.did]}</span>`:""}</div></div>`}).join("")||"<p>Nothing yet. Add files above or use the assistant's Record buttons.</p>";
+ S.dos.filter(d=>d.file&&(d.mime||"").startsWith("image/")).forEach(d=>furl(d.id).then(u=>{const t=$("th_"+d.id);if(u&&t)t.innerHTML=`<img src="${u}" alt="">`}));
+ const sd=S.claim.sent;$("cs_dl").innerHTML=sd?`8-week escalation date: <b>${new Date(new Date(sd).getTime()+56*864e5).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</b>. If no final answer by then, use ADR / CAA PACT.`:"Enter the date you sent your claim to calculate the 8-week escalation date.";
+ $("schedT").innerHTML=`<p>${esc(S.pax||"[Passenger]")} · ${esc(S.flightNo||"[flight]")} · ${esc(S.date||"[date]")} · booking ${esc(S.bookingRef||"[ref]")}</p><table class="sch"><tr><th>Exhibit</th><th>Date/time</th><th>Category</th><th>Description</th><th>File</th></tr>${S.dos.filter(d=>d.use).sort((a,b)=>a.tsn-b.tsn).map(d=>`<tr><td>${ex[d.id]}</td><td>${fmt(d.tsn)}</td><td>${esc(d.cat)}</td><td>${esc(d.desc)}${d.finding?` – finding: ${esc(d.finding)}; ${esc(d.note||"")}`:""}</td><td>${esc(d.name||"–")}</td></tr>`).join("")}</table>`}
+function dosInit(){$("dcat").innerHTML=CATS.map(c=>`<option>${c}</option>`).join("");
+ const up=async e=>{for(const f of e.target.files)await addFile(f,$("dcat").value,f.name);e.target.value="";render()};$("dfiles").onchange=up;$("dcam").onchange=up;
+ document.addEventListener("input",e=>{const f=e.target.dataset.dosf;if(f){const[id,k]=f.split(":");S.dos.find(d=>d.id===id)[k]=e.target.value;save()}});
+ document.addEventListener("change",e=>{const u=e.target.dataset.dosu;if(u){S.dos.find(d=>d.id===u).use=e.target.checked;save();render()}});
+ document.addEventListener("click",async e=>{const t=e.target.closest("[data-mode],[data-prev],[data-dosdel],[data-vsave]");if(!t)return;
+  if(t.dataset.mode){S.mode=t.dataset.mode;save();render();scrollTo(0,0)}
+  if(t.dataset.prev){const d=S.dos.find(x=>x.id===t.dataset.prev);if(!d.file)return;const u=await furl(d.id);$("mbody").innerHTML=`<h3>${esc(d.desc)}</h3>${(d.mime||"").startsWith("image/")?`<img src="${u}" style="max-width:100%">`:d.mime==="application/pdf"?`<iframe src="${u}" style="width:100%;height:60vh;border:0"></iframe>`:""}<p><a class="btn btn2" href="${u}" download="${esc(d.name)}">Open / download</a> <button id="f_cancel">Close</button></p>`;$("modal").classList.add("on");$("f_cancel").onclick=()=>$("modal").classList.remove("on")}
+  if(t.dataset.dosdel&&confirm("Delete this item?")){const id=t.dataset.dosdel;await idb("delete",id).catch(()=>{});S.dos=S.dos.filter(d=>d.id!==id);save();render()}
+  if(t.dataset.vsave)saveFinding(t.dataset.vsave)});
+ ["sent","stage","replyDate","reply","notes"].forEach(k=>{const e=$("cs_"+k);if(S.claim[k])e.value=S.claim[k];e.addEventListener("input",()=>{S.claim[k]=e.value;save();renderDos()})});
+ $("dprint").onclick=()=>{document.querySelectorAll("section").forEach(s=>s.classList.remove("printme"));$("sched").classList.add("printme");renderDos();window.print()};
+ $("dzip").onclick=downloadZip;$("v_cat").onchange=e=>{S.vcat=e.target.value;save();renderVer()};
+ $("rvok").onclick=()=>{S.factsOK=true;save();render();toast("Letters generated")};
+ document.addEventListener("input",e=>{const k=e.target.dataset.fact;if(k){S[k]=e.target.value;S.factsOK=false;save();const el=$(k);if(el&&el.type!=="checkbox")el.value=S[k];gen();toggleLetters()}});
+ render()}
+/* ---- reason verification ---- */
+function flightIds(){const raw=(S.flightNo||"").toUpperCase().replace(/\s+/g,""),m=raw.match(/^([A-Z0-9]{2,3}?)(\d{1,4}[A-Z]?)$/);let pre=m?m[1]:"",num=m?m[2]:"";
+ let iata=pre.length===2?pre:Object.keys(IATA2ICAO).find(k=>IATA2ICAO[k]===pre)||AL_IATA[S.airline]||"",icao=pre.length===3?pre:IATA2ICAO[pre]||IATA2ICAO[iata]||"";return{num,iata,icao}}
+function reasonCat(){const r=(S.reason||"").toLowerCase();return /weather|fog|snow|storm|wind|thunder|ice|visib/.test(r)?"weather":/atc|air traffic|slot|nats|eurocontrol|restriction/.test(r)?"atc":/strike|industrial|walkout/.test(r)?"strike":/technical|fault|engine|maintenance|mechanical/.test(r)?"technical":/operational|crew|staff|resourc/.test(r)?"operational":"other"}
+function metarUrl(code){const d=S.date?new Date(S.date):new Date(),a=new Date(d-864e5),b=new Date(+d+864e5),p=x=>`year${x[0]}=${x[1].getUTCFullYear()}&month${x[0]}=${x[1].getUTCMonth()+1}&day${x[0]}=${x[1].getUTCDate()}`;return `https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py?station=${ICAO[code]}&data=metar&${p([1,a])}&${p([2,b])}&tz=Etc/UTC&format=onlycomma`}
+function ogUrl(code){const d=S.date?new Date(S.date):new Date(),Y=d.getUTCFullYear(),M=String(d.getUTCMonth()+1).padStart(2,"0"),D=String(d.getUTCDate()).padStart(2,"0");return `https://www.ogimet.com/display_metars2.php?lang=en&lugar=${ICAO[code]}&tipo=ALL&ord=REV&nil=SI&fmt=html&ano=${Y}&mes=${M}&day=${D}&hora=00&anof=${Y}&mesf=${M}&dayf=${D}&horaf=23&minf=59&send=send`}
+function checks(cat){const f=flightIds(),o=S.origin,d=S.dest,hist={id:"hist",t:"Flight history & aircraft rotation",dcat:"flight history",links:[f.icao&&f.num?["FlightAware: "+f.icao+f.num,`https://www.flightaware.com/live/flight/${f.icao}${f.num}`]:null,f.iata&&f.num?["Flightradar24: "+f.iata+f.num,`https://www.flightradar24.com/data/flights/${(f.iata+f.num).toLowerCase()}`]:null].filter(Boolean),
+  look:["Find your date in the history. Note scheduled vs actual times and the status (cancelled/diverted).","Note the aircraft registration (e.g. G-xxxx) if shown, then open its history: did the same aircraft fly other routes that day, before or after your slot?","Did other flights on the same route or from the same airport run normally around your time?","Screenshot the page showing the date, flight and times. Free history often only goes back a few days, so do this early."]};
+ const W=[o,d].filter(x=>ICAO[x]).map(x=>({id:"wx"+x,t:`Weather at ${AP[x][0]} (${ICAO[x]})`,dcat:"weather record",links:[["METAR records, day before to day after (Iowa Environmental Mesonet)",metarUrl(x)],["Ogimet METARs for the day",ogUrl(x)],["IEM download page (choose station "+ICAO[x]+")","https://mesonet.agron.iastate.edu/request/download.phtml?network=GB__ASOS"]],
+  look:["Look at reports around the scheduled departure/arrival time (times are UTC; UK clocks are UTC+1 in summer).","Were visibility, wind and thunderstorms within normal limits? Look for codes like FG (fog), TS (thunderstorm), SN (snow), gusts (e.g. 25G45KT) and visibility below 1000 m.","Was the weather at the time of your flight different from other times when flights were operating?","Save the text or a screenshot with the station code and times visible."]}));
+ const A={id:"atc",t:"ATC restrictions",dcat:"ATC/strike notice",links:[["EUROCONTROL Network Operations Portal (daily network situation)","https://www.public.nm.eurocontrol.int/PUBPORTAL/"],["EUROCONTROL ATFM delay statistics","https://www.eurocontrol.int/dashboard/air-traffic-flow-management-statistics-dashboard"],["NATS (UK ATC) news","https://www.nats.aero/news/"]],
+  look:["Look for restrictions (regulations) on your date affecting your airports or airspace, and their times.","Were the restrictions in place at the time of your flight, and did they affect your route?","ATC restrictions can be extraordinary, but the airline should still show it took reasonable measures (e.g. a different slot or aircraft)."]};
+ const q=encodeURIComponent(`${S.airline||""} strike ${AP[o][0]} ${S.date||""}`),St={id:"strike",t:"Strike news",dcat:"ATC/strike notice",links:[["News search: "+decodeURIComponent(q),"https://www.google.com/search?tbm=nws&q="+q]],
+  look:["Who was on strike? A strike by the airline's own staff is usually <b>not</b> extraordinary; strikes by third parties (ATC, airport staff, border force) usually are.","Was the strike on your date and at your airports, and was it announced in advance?","Screenshot the article with the date and source visible."]};
+ const T={id:"tech",t:"Technical / operational questions",dcat:"reason evidence",links:[],look:["Routine technical faults and crew shortages are usually <b>not</b> extraordinary circumstances (the airline's normal operations).","Use the flight history above: did the aircraft fly again soon afterwards? Was a replacement aircraft used?","Use the information-request letter (6c) to ask the airline for the specific fault and the measures it took."]};
+ return {weather:[hist,...W],atc:[hist,A],strike:[St,hist],technical:[hist,T],operational:[hist,T,St],other:[hist,...W,A,St]}[cat]}
+function renderVer(){if(!$("vchecks"))return;$("v_reason").textContent=S.reason||"not recorded yet";const cat=S.vcat||reasonCat();$("v_cat").value=cat;
+ const _vh=checks(cat).map(c=>`<div class="card chk"><h3>${c.t}</h3>${c.links.map(l=>`<a class="btn btn2" style="display:block;text-align:left" href="${l[1]}" target="_blank" rel="noopener">${esc(l[0])} ↗</a>`).join("")}<b>What to look for</b><ol>${c.look.map(x=>`<li>${x}</li>`).join("")}</ol>
+ <details><summary class="btn">💾 Save to dossier</summary><label>Screenshot / file</label><input type="file" id="vf_${c.id}" accept="image/*,application/pdf"><label>Finding</label><select id="vr_${c.id}"><option>supports the airline's reason</option><option>contradicts the airline's reason</option><option selected>unclear</option></select><label>What the record shows (facts only, e.g. times, registration, conditions)</label><textarea id="vn_${c.id}"></textarea><button data-vsave="${c.id}" data-dcat="${c.dcat}" data-src="${esc(c.t)}">Save finding</button></details></div>`).join("");if($("vchecks").dataset.h!==_vh){$("vchecks").innerHTML=_vh;$("vchecks").dataset.h=_vh}}
+async function saveFinding(id){const b=document.querySelector(`[data-vsave="${id}"]`),f=$("vf_"+id).files[0],extra={finding:$("vr_"+id).value,note:$("vn_"+id).value,source:b.dataset.src};
+ if(f)await addFile(f,b.dataset.dcat,b.dataset.src+" – screenshot",extra);else{S.dos.push(Object.assign({id:"n"+Date.now().toString(36),cat:b.dataset.dcat,tsn:now(),desc:b.dataset.src+" – check",use:true},extra));save()}
+ S.log.push({t:new Date(now()).toLocaleString("en-GB"),tsn:now(),txt:`[Reason check] ${b.dataset.src}: ${extra.finding}. ${extra.note}`});save();render();toast("Saved to dossier")}
+/* ---- facts & letters ---- */
+const PH=l=>`[${l}]`;
+const FACTS=[["pax","Passenger name(s)"],["address","Your postal address"],["email","Your email"],["bookingRef","Booking reference"],["airline","Airline"],["flightNo","Flight number"],["date","Flight date"],["told","When you were told (date/time)"],["reason","Reason given by the airline"],["reasonBy","Who gave the reason / how"],["rebook","Rebooking / refund offered"],["choice","What you chose (refund / re-routing / own arrangements)"],["care","Care provided by the airline (vouchers, hotel, or none)"],["schedArr","Scheduled arrival time"],["doors","Actual arrival – time doors opened"],["arrDelay","Arrival delay (hours)"]];
+function needed(){const n=["pax","address","email","bookingRef","flightNo","date","reason"];if(S.dtype==="cancelled")n.push("told","rebook","choice");if(S.dtype!=="cancelled")n.push("arrDelay");n.push("care");return n}
+function renderReview(){if(!$("rvlist"))return;const n=needed();$("rvlist").innerHTML=FACTS.map(([k,l])=>`<label>${l}${n.includes(k)&&!S[k]?' <span class="miss">missing</span>':""}</label><input data-fact="${k}" value="${esc(S[k]||"")}" placeholder="not recorded – will show as [placeholder]">`).join("")+`<p>Route: <b>${S.origin} → ${S.dest}</b> · Disruption: <b>${S.dtype}</b> (change in Step 1)</p>`;
+ const miss=n.filter(k=>!S[k]).map(k=>FACTS.find(f=>f[0]===k)[1]);$("rvwarn").innerHTML=miss.length?`<div class="disc">⚠️ <b>Missing key information:</b> ${miss.join(", ")}. The letters will show [placeholders]: fill them in before sending. Nothing will be assumed.</div>`:""}
+function toggleLetters(){document.querySelectorAll("#s5 pre").forEach(p=>p.closest(".card").style.display=S.factsOK?"":"none")}
+function gen(){if(!$("L1"))return;const c=calc(inp()),ex=exhibits(),v=(k,l)=>S[k]?String(S[k]):PH(l),sym=c.sym||"£";
+ const fl=`${v("flightNo","flight number")} on ${v("date","flight date")} from ${AP[S.origin][0]} (${S.origin}) to ${AP[S.dest][0]} (${S.dest})`;
+ const sig=`\n\nYours faithfully,\n\n${v("pax","your name")}\n${v("address","your address")}\n${v("email","your email")}`;
+ const evid=S.dos.filter(d=>d.use).sort((a,b)=>a.tsn-b.tsn),evL=evid.length?evid.map(d=>`  ${ex[d.id]} – ${d.cat}: ${d.desc} (${fmt(d.tsn)})`).join("\n"):"  [no exhibits selected in the dossier]";
+ const tl=S.log.slice().sort((a,b)=>tsOf(a)-tsOf(b)).map(l=>`  - ${l.t}: ${l.txt.replace(/^\[[^\]]+\]\s*/,m=>m)}${exRef(l.did)}`).join("\n")||"  [no events logged]";
+ const reasonExh=evid.filter(d=>d.cat==="reason evidence"||d.cat==="airline communication").map(d=>ex[d.id]);
+ const reasonS=S.reason?`The reason I was given was: "${S.reason}"${S.reasonBy?` (${S.reasonBy})`:""}${reasonExh.length?` (see Exhibit ${reasonExh.join(", ")})`:""}.`:`The reason I was given was: ${PH("reason given – not recorded")}.`;
+ const finds=evid.filter(d=>d.finding),findS=finds.length?"\n\nI have checked publicly available records:\n"+finds.map(d=>`  - ${d.source} (Exhibit ${ex[d.id]}): ${d.note?d.note.trim():PH("what the record shows")}`).join("\n")+(finds.some(d=>/contradicts/.test(d.finding))?"\nI would be grateful if you would address these records in your response.":""):"";
+ let arrS;if(S.doors){const dly=S.schedArr?((new Date(S.doors)-new Date(S.schedArr))/36e5):null;arrS=`The aircraft doors opened at my final destination at ${S.doors.replace("T"," ")}${S.schedArr?`, against a scheduled arrival of ${S.schedArr.replace("T"," ")} (${dly.toFixed(1)} hours late)`:""}.`}
+ else if(S.arrDelay)arrS=`I reached my final destination about ${S.arrDelay} hours after the scheduled arrival time (my own record).`;else arrS=`I reached my final destination ${PH("arrival time / delay – not recorded")}.`;
+ const delayType=S.dtype==="delayed"||S.dtype==="missed",haveBasis=S.dtype==="cancelled"?!!S.notice:!!S.arrDelay;
+ const amtS=haveBasis&&c.amount?`${money(sym,c.amount)} per passenger`:PH("compensation amount – complete missing facts");
+ const what={cancelled:"was cancelled",delayed:"was delayed",denied:"was subject to denied boarding",missed:"was delayed, causing me to miss my connection on the same booking"}[S.dtype];
+ $("L1").textContent=`Subject: ${c.reg||"UK261"} compensation claim – ${v("flightNo","flight")} ${v("date","date")} – booking ${v("bookingRef","booking ref")}\n\nTo ${S.airline} Customer Relations,\n\nI was booked on flight ${fl}, booking reference ${v("bookingRef","booking reference")}, passenger(s): ${v("pax","passenger names")}.\n\nThe flight ${what}.${S.dtype==="cancelled"?` I was told about the cancellation at ${v("told","date/time told").replace("T"," ")}.`:""} ${reasonS}\n\n${arrS}\n\nWhat happened (from my contemporaneous log):\n${tl}${findS}\n\nUnder ${c.reg==="EU261"?"Regulation (EC) No 261/2004":"Regulation (EC) No 261/2004 as retained in UK law (UK261)"}, Articles ${S.dtype==="denied"?"4":S.dtype==="cancelled"?"5":"6"} and 7${delayType?", as interpreted in Sturgeon v Condor (C-402/07) and Nelson v Deutsche Lufthansa (C-581/10)":""}, I claim compensation of ${amtS} for this ${c.km} km flight.\n\nIf you rely on extraordinary circumstances, please provide evidence of the specific circumstance and of the reasonable measures you took to avoid the ${S.dtype==="delayed"?"delay":"disruption"}; the burden of proof is on the carrier. I do not accept vouchers in place of payment.\n\nEvidence enclosed:\n${evL}\n\nPlease respond within 28 days.${sig}`;
+ const tot={};S.rec.forEach(r=>tot[r.cur]=(tot[r.cur]||0)+r.amt);const totS=Object.entries(tot).map(([k,x])=>k+" "+x.toFixed(2)).join(" + ");
+ $("L2").textContent=`Subject: Expenses reimbursement (Articles 8 and 9) – ${v("flightNo","flight")} ${v("date","date")} – booking ${v("bookingRef","booking ref")}\n\nTo ${S.airline} Customer Relations,\n\nFollowing the disruption to flight ${fl}: rebooking/refund offered: ${v("rebook","what was offered")}; what I chose: ${v("choice","what you chose")}; care provided by the airline: ${v("care","care provided or not")}.\n\nI incurred the following expenses while waiting:\n${S.rec.length?S.rec.map((r,i)=>`  ${i+1}. ${r.t} – ${r.cat} – ${r.desc||PH("description")} – ${r.cur} ${r.amt.toFixed(2)} – ${r.did&&ex[r.did]?"receipt Exhibit "+ex[r.did]:PH("receipt not yet in dossier")}`).join("\n"):"  [no expenses recorded]"}\n\nTOTAL: ${totS||PH("total")}\n\nI ask you to reimburse these costs under Articles 8 and 9 within 28 days. This is separate from any compensation under Article 7.${sig}`;
+ $("L3").textContent=`Subject: Request for reason and operational information – ${v("flightNo","flight")} ${v("date","date")}\n\nTo ${S.airline} Customer Relations,\n\nRegarding flight ${fl} (booking ${v("bookingRef","booking reference")}). ${reasonS}\n\nPlease provide in writing:\n1. The specific cause of the ${S.dtype==="delayed"?"delay":"disruption"} and when it arose.\n2. The scheduled and actual departure and arrival times (doors open) and the aircraft registration.\n3. If you rely on extraordinary circumstances: the supporting records (e.g. weather reports, ATC/slot messages, technical log entries) and the reasonable measures you took.\n4. A copy of the Article 14 notice of passenger rights.\n\nI also request a copy of my personal data relating to this flight under UK GDPR Article 15.${sig}`;
+ const corr=S.dos.filter(d=>/correspondence/.test(d.cat)).sort((a,b)=>a.tsn-b.tsn);
+ $("L4").textContent=`Subject: LETTER BEFORE ACTION – ${v("flightNo","flight")} ${v("date","date")} – booking ${v("bookingRef","booking ref")}\n\nTo ${S.airline} Customer Relations,\n\nI wrote to you on ${S.claim.sent?new Date(S.claim.sent).toLocaleDateString("en-GB"):PH("date claim sent")} claiming compensation of ${amtS}${totS?` and expenses of ${totS}`:""} for flight ${fl}.\n\nCorrespondence so far:\n${corr.length?corr.map(d=>`  - ${fmt(d.tsn)}: ${d.cat} – ${d.desc}${ex[d.id]?` (Exhibit ${ex[d.id]})`:""}`).join("\n"):"  [no correspondence saved in dossier]"}\n${S.claim.reply?`\nYour reply${S.claim.replyDate?` of ${new Date(S.claim.replyDate).toLocaleDateString("en-GB")}`:""} said: "${S.claim.reply}".\n`:"\nI have not received a substantive reply.\n"}\nUnless the claim is paid in full within 14 days of this letter, I intend to refer it to ${PH("your ADR scheme / CAA PACT")} and/or issue a claim in the ${PH("County Court (Money Claim Online) / Sheriff Court (Simple Procedure)")} without further notice, seeking the sums due plus interest and costs.${sig}`;
+ toggleLetters()}
+/* ---- ZIP writer (stored, no compression) ---- */
+function crc32(u){const t=crc32.t||(crc32.t=Array.from({length:256},(_,n)=>{let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;return c>>>0}));let x=-1;for(let i=0;i<u.length;i++)x=t[(x^u[i])&255]^(x>>>8);return(x^-1)>>>0}
+function makeZip(files){const enc=new TextEncoder(),parts=[],cd=[];let off=0;const d=new Date(),dt=((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate(),tm=(d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1);
+ for(const f of files){const n=enc.encode(f.name),data=typeof f.data==="string"?enc.encode(f.data):f.data,crc=crc32(data),h=new DataView(new ArrayBuffer(30));
+  [[0,0x04034b50,4],[4,20,2],[6,0x0800,2],[8,0,2],[10,tm,2],[12,dt,2],[14,crc,4],[18,data.length,4],[22,data.length,4],[26,n.length,2],[28,0,2]].forEach(([o,val,s])=>s===4?h.setUint32(o,val,true):h.setUint16(o,val,true));
+  parts.push(new Uint8Array(h.buffer),n,data);const c=new DataView(new ArrayBuffer(46));
+  [[0,0x02014b50,4],[4,20,2],[6,20,2],[8,0x0800,2],[10,0,2],[12,tm,2],[14,dt,2],[16,crc,4],[20,data.length,4],[24,data.length,4],[28,n.length,2],[30,0,2],[32,0,2],[34,0,2],[36,0,2],[38,0,4],[42,off,4]].forEach(([o,val,s])=>s===4?c.setUint32(o,val,true):c.setUint16(o,val,true));
+  cd.push(new Uint8Array(c.buffer),n);off+=30+n.length+data.length}
+ const cs=cd.reduce((a,b)=>a+b.length,0),e=new DataView(new ArrayBuffer(22));[[0,0x06054b50,4],[8,files.length,2],[10,files.length,2],[12,cs,4],[16,off,4]].forEach(([o,val,s])=>s===4?e.setUint32(o,val,true):e.setUint16(o,val,true));
+ return new Blob([...parts,...cd,new Uint8Array(e.buffer)],{type:"application/zip"})}
+async function downloadZip(){gen();const ex=exhibits(),files=[],safe=s=>String(s||"file").replace(/[^\w.\-]+/g,"_");
+ for(const d of S.dos.filter(d=>d.file)){const r=await idb("get",d.id);if(r)files.push({name:`exhibits/${ex[d.id]||"unused"}_${safe(d.cat)}_${safe(d.name)}`,data:new Uint8Array(await r.blob.arrayBuffer())})}
+ const sched=`EVIDENCE SCHEDULE\n${S.pax||"[Passenger]"} – ${S.flightNo||"[flight]"} ${S.date||"[date]"} – booking ${S.bookingRef||"[ref]"}\n\n`+S.dos.filter(d=>d.use).sort((a,b)=>a.tsn-b.tsn).map(d=>`${ex[d.id]}\t${fmt(d.tsn)}\t${d.cat}\t${d.desc}${d.finding?` | finding: ${d.finding}; ${d.note||""}`:""}\t${d.name||"(no file)"}`).join("\n")+`\n\nTIMELINE\n`+timeline().map(x=>`${fmt(x.ts)}\t${x.k==="log"?x.o.txt:x.k==="rec"?`Receipt ${x.o.cur} ${x.o.amt.toFixed(2)} ${x.o.desc||""}`:`${x.o.cat}: ${x.o.desc}`}`).join("\n")+`\n\nCLAIM STATUS\n${JSON.stringify(S.claim,null,1)}\n\nGeneral information only, not legal advice.\n`;
+ files.push({name:"00_evidence_schedule.txt",data:sched});["L1","L2","L3","L4"].forEach((l,i)=>files.push({name:`letters/${i+1}_${["compensation","expenses","information_request","letter_before_action"][i]}.txt`,data:$(l).textContent}));
+ const u=URL.createObjectURL(makeZip(files)),a=document.createElement("a");a.href=u;a.download=`claim-dossier-${safe(S.flightNo||"flight")}.zip`;document.body.append(a);a.click();a.remove()}
+const _act2=act;act=function(a){if(a==="ver"||a==="dos"){S.mode=a;save();render();scrollTo(0,0)}else _act2(a)};
+const _render2=render;render=function(){_render2();document.body.dataset.mode=S.mode;document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.mode===S.mode));if(S.mode==="dos")$("stepname").textContent="📁 Claim dossier";if(S.mode==="ver")$("stepname").textContent="🔎 Check the airline's reason";if(S.mode==="wiz")$("toBot").style.display="";renderDos();renderVer();renderReview();gen()};
+SITS.ec[1]+=' <button data-act="ver">🔎 Check the reason</button>';
+window.FH={calc,regime,hav,band,ms,act,makeZip,exhibits,gen};build();dosInit();if(!S.bot.msgs.length)next();tick();setInterval(tick,15000);
+</script></body></html>
